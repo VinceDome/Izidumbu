@@ -271,9 +271,9 @@ class Move:
     #start of the pid line follower, WIP 
     def FollowLine(self, speed):
         target = 27.5
-        Kp = 0.5
-        Ki = 0.02-0.02
-        Kd = 0
+        Kp = 0.3
+        Ki = 0.02
+        Kd = 4
         error = 0
         integral = 0
         last_error = 0
@@ -281,7 +281,7 @@ class Move:
 
         speed *= -1
         while True:
-            error = (self.colorSensorRight.reflected_light_intensity - target)
+            error = (target - self.colorSensorRight.reflected_light_intensity)
             integral += error
             derivative = error - last_error
 
