@@ -6,48 +6,53 @@ class Move:
     from ev3dev2.led import Leds
     import os, time
     
-    """
+    
     #Roberto
-    drive = MoveTank(OUTPUT_A, OUTPUT_D)
-    steer = MoveSteering(OUTPUT_A, OUTPUT_D)
-    motora = Motor(OUTPUT_A)
-    motord = Motor(OUTPUT_D)
-    gyro = GyroSensor(INPUT_1)
-    colorSensorRight = ColorSensor(INPUT_3)
+    drive = MoveTank(OUTPUT_B, OUTPUT_A)
+    steer = MoveSteering(OUTPUT_B, OUTPUT_A)
+    motorLeft = Motor(OUTPUT_B)
+    motorRight = Motor(OUTPUT_A)
+
+    gyro = GyroSensor(INPUT_2)
+    colorSensorRight = ColorSensor(INPUT_1)
     colorSensorLeft = ColorSensor(INPUT_4)
+    colorSensorMid = ColorSensor(INPUT_3)
+    
     """
     #sappersrobot
     drive = MoveTank(OUTPUT_C, OUTPUT_B)
     steer = MoveSteering(OUTPUT_C, OUTPUT_B)
     motorb = Motor(OUTPUT_A) #baloldali motor
-    motora = Motor(OUTPUT_B) #jobb kerék
-    motord = Motor(OUTPUT_C) #bal kerék
+    motorLeft = Motor(OUTPUT_B) #jobb kerék
+    motorRight = Motor(OUTPUT_C) #bal kerék
     motorc = Motor(OUTPUT_D) #jobo motor
     gyro = GyroSensor(INPUT_2)
     colorSensorRight = ColorSensor(INPUT_3)
     colorSensorLeft = ColorSensor(INPUT_4)
-
+    """
 
     #moving forward with the gyro, while not resetting it at the start
     def MoveWithGyro(self, speed, rot, initial_deg=False, multiplier=0.4, givenBrake=True):
-        initial_rot = self.Avg(self.motora.position, self.motord.position)
+        initial_rot = self.Avg(self.motorLeft.position, self.motorRight.position)
         if not initial_deg:
             initial_deg = self.gyro.angle
-    
+
+        speed *= -1
+
         if speed < 0:
             multiplier *= -1
             rot *= -1
         while True:
             #exits if the rot is passed
-            if rot < 0 and initial_rot - self.Avg(self.motora.position, self.motord.position) > rot * -1 or rot > 0 and self.Avg(self.motora.position, self.motord.position) > initial_rot + rot:
+            if rot < 0 and initial_rot - self.Avg(self.motorLeft.position, self.motorRight.position) > rot * -1 or rot > 0 and self.Avg(self.motorLeft.position, self.motorRight.position) > initial_rot + rot:
                 break
-            correction = (self.gyro.angle - initial_deg) * multiplier * -1
+            correction = (self.gyro.angle - initial_deg) * multiplier
             print(correction)
             if correction > 99:
-                self.steer.on(100, speed)
+                self.steer.on(-100, speed)
                 continue
             elif correction < -99:
-                self.steer.on(-100, speed)
+                self.steer.on(100, speed)
                 continue
             self.steer.on(correction, speed)
         self.steer.off(brake=givenBrake)
@@ -146,29 +151,7 @@ class Move:
                 print("angle", self.gyro.angle)
                 remaining = abs(deg - self.gyro.angle)
                 print("remaining", remaining)
-                if remaining > 100 and divider >= 3:
-                    self.drive.on(100, -100)
-                    continue
-                elif remaining <= 3:
-                    break
-                elif remaining <= 10:
-                    self.drive.on(7, -7)
-                    continue
-                if motors == "ad":
-                    print("driverigth:", remaining * -1 / divider, "driveleft", remaining/divider)
-                    self.drive.on(remaining/divider, remaining*-1/divider)
-                elif motors == "a":
-                    self.drive.on(remaining/2, 0)
-                elif motors == "d":
-                    self.drive.on(0, remaining*-1/2)
                 
-
-
-        if initial_deg > deg:
-            while self.gyro.angle > deg + tolerance:
-                remaining = abs(deg - self.gyro.angle)
-                print("angle", self.gyro.angle)
-                print("remaining", remaining)
                 if remaining > 100:
                     self.drive.on(-100, 100)
                     continue
@@ -184,6 +167,30 @@ class Move:
                     self.drive.on(remaining*-1/2, 0)
                 elif motors == "d":
                     self.drive.on(0, remaining/2)
+
+
+        if initial_deg > deg:
+            while self.gyro.angle > deg + tolerance:
+                remaining = abs(deg - self.gyro.angle)
+                print("angle", self.gyro.angle)
+                print("remaining", remaining)
+                
+                
+                if remaining > 100 and divider >= 3:
+                    self.drive.on(100, -100)
+                    continue
+                elif remaining <= 3:
+                    break
+                elif remaining <= 10:
+                    self.drive.on(7, -7)
+                    continue
+                if motors == "ad":
+                    print("driverigth:", remaining * -1 / divider, "driveleft", remaining/divider)
+                    self.drive.on(remaining/divider, remaining*-1/divider)
+                elif motors == "a":
+                    self.drive.on(remaining/2, 0)
+                elif motors == "d":
+                    self.drive.on(0, remaining*-1/2)
 
 
         """
@@ -213,10 +220,10 @@ class Move:
             for i in range(4):
                 print("újcheck")
                 while deg < self.gyro.angle:
-                    self.drive.on(-1.5, 1.5)
+                    self.drive.on(1.5, -1.5)
                 print("újcheck2")
                 while deg > self.gyro.angle:
-                    self.drive.on(1.5, -1.5)
+                    self.drive.on(-1.5, 1.5)
             self.drive.off()
             for i in range(5):
                 print(self.gyro.angle)
@@ -264,15 +271,17 @@ class Move:
     #start of the pid line follower, WIP 
     def FollowLine(self, speed):
         target = 27.5
-        Kp = 1.5
-        Ki = 0.02
-        Kd = 7
+        Kp = 0.5
+        Ki = 0.02-0.02
+        Kd = 0
         error = 0
         integral = 0
         last_error = 0
         derivative = 0
+
+        speed *= -1
         while True:
-            error = (target - self.colorSensorLeft.reflected_light_intensity)
+            error = (self.colorSensorRight.reflected_light_intensity - target)
             integral += error
             derivative = error - last_error
 
@@ -321,12 +330,15 @@ class Move:
 
 
     def Strafe(self, steer, speed, rot):
-        initial_rot = self.Avg(self.motora.position, self.motord.position)
+        initial_rot = self.Avg(self.motorLeft.position, self.motorRight.position)
+
+        speed *= -1
+
         if 0 < speed:
-            while self.Avg(self.motora.position, self.motord.position) < initial_rot + rot:
+            while self.Avg(self.motorLeft.position, self.motorRight.position) < initial_rot + rot:
                 self.steer.on(steer, speed)
         elif speed < 0:
-            while self.Avg(self.motora.position, self.motord.position) > initial_rot - rot:
+            while self.Avg(self.motorLeft.position, self.motorRight.position) > initial_rot - rot:
                 self.steer.on(steer, speed)
         self.steer.off()   
 
@@ -342,7 +354,7 @@ class Util:
     from ev3dev2.console import Console
     import os, time
 
-    left = Motor(OUTPUT_B)
+    left = Motor(OUTPUT_D)
     right = Motor(OUTPUT_C)
     
     def updown(self):
@@ -370,266 +382,7 @@ class Runs:
     move = Move()
     util = Util()
 
-    #kosár és a másik térfélre áttóni
-    def run1(self):
-        #values = open("values.txt", "a+")
-        #values.write("\n------------------------------------\nGYRO AZ ELEJÉN: " + str(self.move.gyro.angle))
-        self.move.gyro.reset()
-        #values.write("\nSLEEP ELŐTT: " + str(self.move.gyro.angle))
-        self.move.time.sleep(0.5)
-        #values.write("\nSLEEP UTÁN: " + str(self.move.gyro.angle))
-        #values.close()
-        self.util.left.on_for_seconds(-100, 1, block=False)
-
-        
-        self.move.MoveWithGyro(55+20, 1290, initial_deg=0)
     
-        #befordul, rámegy, felemeli-leengedi, visszamegy
-        self.move.TurnToDeg(-77-2-2, 1)
-        self.move.MoveWithGyro(40, 500, initial_deg=-79-2)
-        self.util.left.on_for_degrees(100, 950+950+300)
-        self.time.sleep(0.5)
-        self.util.left.on_for_degrees(-100, 950+950+300, block=False) #1007 - 782 = 225
-        self.time.sleep(0.3)
-        self.move.MoveWithGyro(-40, 267)
-        
-
-        #leszedi a kockát
-        self.move.TurnToDeg(-211+2, 1)
-
-        """
-        self.move.time.sleep(0.2)
-        self.move.TurnToDeg(-211+2, 0)
-        """
-        self.move.MoveWithGyro(-50, 240, initial_deg=-211+2)
-        self.move.MoveWithGyro(-20, 120, initial_deg=-211+2)
-        self.move.MoveWithGyro(60, 500, initial_deg=-211+2)
-
-        """
-        #felkapja a health unitot
-        self.move.TurnToDeg(-349, 0)
-        self.util.left.on(-50, block=False)
-        self.util.left.on_for_degrees(50, 260+60+90, block=False)
-        self.move.MoveWithGyro(40, 390-60, givenBrake=True)
-        self.move.TurnToDeg(-352, 0)
-        self.move.MoveWithGyro(40, 60, givenBrake=False)
-        
-        self.move.time.sleep(0.5)
-        self.util.left.on_for_seconds(50, 2)
-        self.move.time.sleep(0.5)
-        
-        #visszamegy
-        self.move.MoveWithGyro(-40, 370, givenBrake=False)
-
-
-        #ráfurdul a hazaútra, kimegy és kisodorja a health unitot
-        self.move.TurnToDeg(-453, 0, divider = 5) #-104+3
-        """
-        #ráfordul a hazaútra, kimegy és kisodorja a health unitot
-        self.move.TurnToDeg(-98, 1)
-        self.move.MoveWithGyro(80, 800, initial_deg = -98)
-        self.move.Strafe(-25, 90, 800)
-
-        
-
-    #háttal betolja a lépésszámlálót, megfordul, kerékkel meghajtja a futópadot vagy mit, elhúzza a kereket és hazaviszi a másikat
-    def run2(self):
-
-        
-        self.util.right.on_for_seconds(100, 2)
-        self.move.gyro.reset()
-        self.move.time.sleep(0.5)
-        #self.move.MoveWithGyro(-50, 1400-800, 5)
-        #self.move.MoveWithGyro(-50, 1100+250, 10)
-        self.move.MoveWithGyro(-50, 1950-200, 5)
-        
-
-
-
-
-        #falaz a step counter után
-        self.move.MoveWithGyro(30, 100)
-        self.move.TurnToDeg(80, 2, "a")
-        self.move.MoveWithGyro(-20, 200)
-        self.move.time.sleep(0.3)
-        self.move.gyro.reset()
-        self.move.time.sleep(0.4)
-
-        #odamegy a futópadhoz
-        self.move.MoveWithGyro(30, 40)
-        self.move.TurnToDeg(15, 1)
-        self.move.MoveWithGyro(40, 200)
-
-        """
-        #nagyobb ív
-        self.move.TurnToDeg(70, 1)
-        self.move.MoveWithGyro(60, 350, initial_deg=70, givenBrake=False)
-        self.move.MoveWithGyro(60, 450, initial_deg=110)
-        self.move.TurnToDeg(115, 1)
-        self.move.MoveWithGyro(30, 400+50+200, initial_deg=115)
-        """
-        
-        #eredeti ív
-        self.move.TurnToDeg(70, 1)
-        self.move.MoveWithGyro(60, 650+150, initial_deg=105)
-        self.move.TurnToDeg(115, 1)
-        self.move.MoveWithGyro(30, 400+50, initial_deg=115)
-        
-
-        #meghajtja a futópadot
-        self.move.TurnToDeg(90, 1)
-        self.move.MoveWithGyro(30, 500, initial_deg=90)
-        #self.move.MoveWithGyro(-20, 10)
-        self.util.left.on_for_seconds(100, 2)
-        
-        
-
-
-    
-        #futópad után falaz
-        self.util.right.on(100)
-        self.move.TurnToDeg(90, 0)
-        self.move.MoveWithGyro(-40, 35, initial_deg=90)
-        self.move.TurnToDeg(0, 0)
-        self.move.MoveWithGyro(-20, 200, initial_deg=0)
-        self.time.sleep(0.3)
-        self.move.gyro.reset()
-        self.time.sleep(0.2)
-
-        #rámegy a kekw kerékre
-        self.move.MoveWithGyro(50, 680, initial_deg=0)
-        self.move.TurnToDeg(67, 1)
-        self.move.MoveWithGyro(20, 6, givenBrake=False, initial_deg=67)
-
-        #megfogja a kekw kereket
-        self.util.right.on_for_degrees(-50, 228+50)
-        self.time.sleep(0.4)
-        
-        #kihúzza a kék kereket
-        self.move.MoveWithGyro(-30*0.5, 150, initial_deg=67)
-        self.move.TurnToDeg(40, 1, "a")
-        self.time.sleep(0.3)
-        self.util.right.on(50)
-        self.time.sleep(0.3)
-
-        #rámegy a nagy kerékre
-        self.move.MoveWithGyro(-40, 170, initial_deg=40)
-        self.move.TurnToDeg(-57, 1, "a")
-        self.move.MoveWithGyro(40, 140, initial_deg=-57, givenBrake=False)
-        
-        
-        
-        #ráfog a nagy kerékre
-        self.util.right.on_for_degrees(-40, 160-30+7)
-        self.move.time.sleep(0.5)
-
-        #hazajön
-        self.move.MoveWithGyro(-40, 50)
-    
-        self.move.TurnToDeg(-105, 1)
-        self.move.MoveWithGyro(90, 2700, -110, givenBrake=False, multiplier=0.7)
-
-        #self.move.MoveWithGyro(70, 2000, -150, givenBrake=False)
-        self.util.right.on_for_seconds(50, 1)
-        
-
-        
-
-    #padba kockák és innovation project
-    def run3(self):
-        self.move.gyro.reset()
-        self.move.time.sleep(0.5)
-        self.move.MoveWithGyro(60, 60, givenBrake=False, initial_deg=0) 
-        self.move.time.sleep(0.1)
-
-    
-        self.move.TurnToDeg(-29, 0+1)
-        #self.move.TurnToDeg(-29, 0)
-        
-        self.move.MoveWithGyro(40, 345+10, initial_deg=-29)
-
-        self.move.TurnToDeg(13-1, 0+1)
-        #self.move.TurnToDeg(13-1, 0)
-
-        self.time.sleep(0.3)
-        
-        
-        self.move.MoveWithGyro(60, 250, initial_deg=12, givenBrake=False)
-        self.move.MoveWithGyro(30, 150, initial_deg=12)
-        self.move.Strafe(30, 40, 300+400)
-        
-        self.move.time.sleep(0.5)
-        self.move.MoveWithGyro(-40, 600)
-
-        #self.move.MoveWithGyro(-70, 700)
-        #self.move.TurnToDeg(-5, 1)
-        #self.move.MoveWithGyro(-50, 500)
-        
-
-    #a csúszdáról hazaviszi az embert
-    def run4(self):
-        self.move.gyro.reset()
-        self.move.time.sleep(0.5)
-        
-        #új rész
-        self.util.right.on(50)
-    
-        #self.move.MoveWithGyro(80, 950, initial_deg=-2, givenBrake=False, multiplier=0.6)
-        self.move.MoveWithGyro(80, 900, initial_deg=0, givenBrake=False, multiplier=0.6)
-        self.move.MoveWithGyro(10, 50, initial_deg=0, givenBrake=False)
-        self.move.TurnToDeg(0, -2)
-        
-        self.move.time.sleep(0.5)
-        self.util.right.on(-50)
-        self.move.time.sleep(1.5)
-        
-        self.move.MoveWithGyro(-30, 200, givenBrake=False, initial_deg=0)
-        self.move.MoveWithGyro(-50, 500-200, givenBrake=False, initial_deg=0)
-        self.move.MoveWithGyro(-80, 1700*1.5, initial_deg=40)
-        
-        """
-        #régi rész
-        self.util.right.on(-40, block=True)
-        self.move.time.sleep(0.4)
-        self.move.MoveWithGyro(80, 800, givenBrake=False)
-        self.util.right.on(40)
-        self.util.time.sleep(0.3)
-        self.util.right.off(brake=False)
-        self.util.time.sleep(0.5)
-
-        self.move.Strafe(-5, -80, 1200)
-        """
-
-    #crosses gate, drops cubes and dances like there's no tomorrow
-    def run5(self):
-        self.move.gyro.reset()
-        self.move.time.sleep(0.5)
-        #turns to the right degree
-        self.util.right.on_for_seconds(50, 1)
-        self.move.MoveWithGyro(80, 1400, initial_deg=0)
-        self.move.TurnToDeg(-30, 1)
-        self.move.MoveWithGyro(80, 410-30, initial_deg=-30)
-        self.move.TurnToDeg(-90, 1)
-
-        #goes through the gate and drops the cubes
-        self.move.MoveWithGyro(80, 920, givenBrake=False, initial_deg=-90)
-        self.time.sleep(1)
-        self.util.five()
-        self.time.sleep(0.5)
-
-        #goes to the dance floor
-        self.move.MoveWithGyro(-40, 300)
-        self.move.TurnToDeg(-140, 1)
-        self.move.MoveWithGyro(80, 750, initial_deg=-140)
-
-        #drops them sick moves
-        self.move.TurnToDeg(-370, 50)
-        while True:
-            self.move.TurnToDeg(-25, 50)
-            self.move.TurnToDeg(60, 50)
-            self.move.TurnToDeg(200, 50)
-            self.move.TurnToDeg(-380, 50)
-
     def pingpong(self):
         self.move.gyro.reset()
         for i in range(4):
@@ -675,6 +428,7 @@ class Menu:
         self.move.drive.off(brake=False)
         self.util.right.off(brake=False)
         self.util.left.off(brake=False)
+
         if selected > number_of_runs:
             print("Leálljon a program?")
             while True:
@@ -684,28 +438,34 @@ class Menu:
                     selected = number_of_runs
                     self.time.sleep(sleeptime)
                     break
+
         self.os.system("clear")
         print(selected)
         self.time.sleep(0.5)
         while True:
             if self.button.right:
+
                 if selected == number_of_runs:
                     self.os.system("clear")
                     selected = 1
                     print(selected)
                     self.time.sleep(sleeptime)
                     continue
+
                 self.os.system("clear")
                 selected += 1
                 print(selected)
                 self.time.sleep(sleeptime)
+
             if self.button.left:
+
                 if selected == 1:
                     self.os.system("clear")
                     selected = number_of_runs
                     print(selected)
                     self.time.sleep(sleeptime)
                     continue
+
                 self.os.system("clear")
                 selected -= 1
                 print(selected)
