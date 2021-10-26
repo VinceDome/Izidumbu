@@ -138,7 +138,7 @@ class Move:
             print(self.gyro.angle)
 
     #turns to a specified angle, but doesn't choose the shortest path
-    def TurnToDeg(self, deg, tolerance, motors="ad", divider=3):
+    def TurnToDeg(self, deg, tolerance, motors="ad", divider=4):
         initial_deg = self.gyro.angle
         print(initial_deg)
         print(deg)
@@ -188,9 +188,9 @@ class Move:
                     print("driverigth:", remaining * -1 / divider, "driveleft", remaining/divider)
                     self.drive.on(remaining/divider, remaining*-1/divider)
                 elif motors == "a":
-                    self.drive.on(remaining/2, 0)
+                    self.drive.on(remaining/divider, 0)
                 elif motors == "d":
-                    self.drive.on(0, remaining*-1/2)
+                    self.drive.on(0, remaining*-1/divider)
 
 
         """
@@ -242,6 +242,7 @@ class Move:
                 break
         self.drive.off()
 
+    
     #these two functions were only tests
     def FollowLine1(self, speed, color):
         initial_deg = self.gyro.angle
@@ -270,7 +271,7 @@ class Move:
 
     #start of the pid line follower, WIP 
     def FollowLine(self, speed):
-        target = 27.5
+        global target
         Kp = 0.3
         Ki = 0.02
         Kd = 4
@@ -389,7 +390,10 @@ class Runs:
             self.move.MoveWithGyro(40, 1427)
             self.move.TurnToDeg(180, 1)
             self.move.MoveWithGyro(40, 1427)
-            self.move.TurnToDeg(0, 1)
+            self.move.TurnToDeg(0, 1)   
+
+    def run3(self):
+        self.move.FollowLine(-20)
 
 
 #a class for controlling the menu starting the runs
@@ -422,71 +426,90 @@ class Menu:
     
     def selection(self, default):
         sleeptime = 0.3
-        selected = default
         self.os.system("clear")
-        number_of_runs = 5
+        number_of_runs = 4
         self.move.drive.off(brake=False)
         self.util.right.off(brake=False)
         self.util.left.off(brake=False)
-
-        if selected > number_of_runs:
-            print("Leálljon a program?")
-            while True:
-                if self.button.enter:
-                    return "end"
-                elif self.button.left:
-                    selected = number_of_runs
-                    self.time.sleep(sleeptime)
-                    break
-
-        self.os.system("clear")
-        print(selected)
         self.time.sleep(0.5)
+
         while True:
-            if self.button.right:
+            
+            if self.move.colorSensorMid.color_name in ["Black", "NoColor"]:
+                selected = 0
+            elif self.move.colorSensorMid.color_name == "Red":
+                selected = 3
+            elif self.move.colorSensorMid.color_name == "Green":
+                selected = 2
+            elif self.move.colorSensorMid.color_name == "Brown":
+                selected = 1
 
-                if selected == number_of_runs:
-                    self.os.system("clear")
-                    selected = 1
-                    print(selected)
-                    self.time.sleep(sleeptime)
-                    continue
-
-                self.os.system("clear")
-                selected += 1
-                print(selected)
-                self.time.sleep(sleeptime)
-
-            if self.button.left:
-
-                if selected == 1:
-                    self.os.system("clear")
-                    selected = number_of_runs
-                    print(selected)
-                    self.time.sleep(sleeptime)
-                    continue
-
-                self.os.system("clear")
-                selected -= 1
-                print(selected)
-                self.time.sleep(sleeptime)
-                
             if self.button.enter:
-                self.time.sleep(0.5)
+                if selected == 0:
+                    continue
                 return selected
+            elif self.button.right or self.button.left:
+                break
 
-            if self.button.down:
-                self.util.right.on(30, block=False)
-                self.util.left.on(30)
-                self.time.sleep(0.1)
-                self.util.right.on(-30, block=False)
-                self.util.left.on(-30)
-                self.time.sleep(0.1)
+            self.os.system("clear")
+            print("Run "+str(selected))
+            print("Gyro "+str(self.move.gyro.angle))
+            print(self.move.colorSensorMid.color_name)
 
-            else:
-                self.util.left.off(brake=False)
-                self.util.right.off(brake=False)
-    
+        while True:
+            try:
+                if self.button.right:
+
+                    if selected == number_of_runs:
+                        selected = 1
+                        self.os.system("clear")
+                        print("Run "+str(selected))
+                        print("Gyro "+str(self.move.gyro.angle))
+                        print("MANUAL")
+                        self.time.sleep(sleeptime)
+                        continue
+                    
+                    self.os.system("clear")
+                    selected += 1
+                    print("Run "+str(selected))
+                    print("Gyro "+str(self.move.gyro.angle))
+                    print("MANUAL")
+                    self.time.sleep(sleeptime)
+
+                if self.button.left:
+                    
+                    if selected == 1:
+                        selected = number_of_runs
+                        self.os.system("clear")
+                        print("Run "+str(selected))
+                        print("Gyro "+str(self.move.gyro.angle))
+                        print("MANUAL")
+                        self.time.sleep(sleeptime)
+
+                        continue
+
+                    selected -= 1
+                    self.os.system("clear")
+                    print("Run "+str(selected))
+                    print("Gyro "+str(self.move.gyro.angle))
+                    print("MANUAL")
+                    self.time.sleep(sleeptime)
+                    
+                if self.button.enter:
+                    self.time.sleep(0.5)
+                    return selected
+
+                self.os.system("clear")
+                print("Run "+str(selected))
+                print("Gyro "+str(self.move.gyro.angle))
+                print("MANUAL")
+
+            except KeyboardInterrupt:
+                return None
+    def settarget(self, _target):
+        global target
+        target = _target
+
     def run(self, selected):
         
         
@@ -499,20 +522,16 @@ class Menu:
         elif selected == 3:
             self.runs.run3()
             print("harmadik futam done")
-        elif selected == 4:
+        if selected == 4:
             self.runs.run4()
             print("negyedik futam done")
-        elif selected == 5:
-            self.runs.run5()
-            print("ötödik futam done")
-        
+            return "end"
+        return None
 
         """
         exec("self.runs.run"+str(selected)+"()")
-        print(str(selected)+" done.")
-        """
+        print(str(selected)+" done.")     """
 
-        return selected + 1
 
 
 

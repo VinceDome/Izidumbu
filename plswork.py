@@ -39,7 +39,11 @@ def speed():
 #-1734, -2682
 
 
-move.FollowLine(-30)
+move.gyro.reset()
+move.TurnToDeg(45, 0)
+move.TurnToDeg(-45, 0)
+move.TurnToDeg(90, 0)
+move.TurnToDeg(0, 0)
 
 move.drive.off(brake=False)
 util.right.off(brake=False)
