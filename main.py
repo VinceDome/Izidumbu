@@ -272,9 +272,9 @@ class Move:
     #start of the pid line follower, WIP 
     def FollowLine(self, speed):
         global target
-        Kp = 0.3
-        Ki = 0.02
-        Kd = 4
+        Kp = 0.4
+        Ki = 0.02-0.02
+        Kd = 0
         error = 0
         integral = 0
         last_error = 0
@@ -355,8 +355,8 @@ class Util:
     from ev3dev2.console import Console
     import os, time
 
-    left = Motor(OUTPUT_D)
-    right = Motor(OUTPUT_C)
+    left = Motor(OUTPUT_C)
+    right = Motor(OUTPUT_D)
     
     def updown(self):
         self.left.on(100)
@@ -393,7 +393,17 @@ class Runs:
             self.move.TurnToDeg(0, 1)   
 
     def run3(self):
-        self.move.FollowLine(-20)
+        self.move.gyro.reset()
+        self.time.sleep(0.5)
+        self.util.right.off(brake=True)
+        self.move.MoveWithGyro(40, 800, givenBrake=False, initial_deg=6)
+        self.util.right.on_for_degrees(40, 80, brake=True, block=False)
+
+        self.move.MoveWithGyro(40, 100, initial_deg=-50, givenBrake=False)
+        self.move.MoveWithGyro(40, 1000, initial_deg=32, givenBrake=False)
+        self.move.MoveWithGyro(20, 150, initial_deg=32, givenBrake=False)
+        
+        
 
 
 #a class for controlling the menu starting the runs
@@ -423,7 +433,7 @@ class Menu:
     def both(self, color):
         self.leds.set_color("LEFT", color)
         self.leds.set_color("RIGHT", color)
-    
+
     def selection(self, default):
         sleeptime = 0.3
         self.os.system("clear")
@@ -432,7 +442,13 @@ class Menu:
         self.util.right.off(brake=False)
         self.util.left.off(brake=False)
         self.time.sleep(0.5)
-
+        previous_selected = 0
+        previous_gyro = 0
+        selected = 0
+        self.os.system("clear")
+        print("Run "+str(selected))
+        print("Gyro "+str(self.move.gyro.angle))
+        print(self.move.colorSensorMid.color_name)
         while True:
             
             if self.move.colorSensorMid.color_name in ["Black", "NoColor"]:
@@ -443,19 +459,38 @@ class Menu:
                 selected = 2
             elif self.move.colorSensorMid.color_name == "Brown":
                 selected = 1
-
+            
             if self.button.enter:
+                self.os.system("clear")
+                print("STARTING")
                 if selected == 0:
+                    print("FAILED")
+                    self.os.system("clear")
+                    print("Run "+str(selected))
+                    print("Gyro "+str(self.move.gyro.angle))
+                    print(self.move.colorSensorMid.color_name)
                     continue
                 return selected
             elif self.button.right or self.button.left:
                 break
-
-            self.os.system("clear")
-            print("Run "+str(selected))
-            print("Gyro "+str(self.move.gyro.angle))
-            print(self.move.colorSensorMid.color_name)
-
+            elif self.button.down:
+                self.util.right.on(30)
+                self.util.left.on(30)
+                self.time.sleep(0.1)
+                self.util.right.on(-30)
+                self.util.left.on(-30)
+                self.time.sleep(0.1)
+            else:
+                self.util.right.off(brake=False)
+                self.util.left.off(brake=False)
+            
+            if selected != previous_selected or previous_gyro != self.move.gyro.angle:
+                self.os.system("clear")
+                print("Run "+str(selected))
+                print("Gyro "+str(self.move.gyro.angle))
+                print(self.move.colorSensorMid.color_name)
+            previous_selected = selected
+            previous_gyro = self.move.gyro.angle
         while True:
             try:
                 if self.button.right:
@@ -499,10 +534,12 @@ class Menu:
                     self.time.sleep(0.5)
                     return selected
 
-                self.os.system("clear")
-                print("Run "+str(selected))
-                print("Gyro "+str(self.move.gyro.angle))
-                print("MANUAL")
+                if previous_gyro != self.move.gyro.angle:
+                    self.os.system("clear")
+                    print("Run "+str(selected))
+                    print("Gyro "+str(self.move.gyro.angle))
+                    print("MANUAL")
+                previous_gyro = self.move.gyro.angle
 
             except KeyboardInterrupt:
                 return None

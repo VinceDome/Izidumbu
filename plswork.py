@@ -1,7 +1,8 @@
-from main import Move, Util, Runs
+from main import Move, Util, Runs, Menu
 move = Move()
 util = Util()
 runs = Runs()
+menu = Menu()
 
 
 def calibrate():
@@ -35,15 +36,10 @@ def speed():
     for i in range(1, 100):
         move.MoveWithGyro(i, 50, initial_deg=0, givenBrake=False)
 
-
+menu.settarget(30)
 #-1734, -2682
+runs.run3()
 
-
-move.gyro.reset()
-move.TurnToDeg(45, 0)
-move.TurnToDeg(-45, 0)
-move.TurnToDeg(90, 0)
-move.TurnToDeg(0, 0)
 
 move.drive.off(brake=False)
 util.right.off(brake=False)
