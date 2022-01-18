@@ -47,7 +47,7 @@ class Move:
             if rot < 0 and initial_rot - self.Avg(self.motorLeft.position, self.motorRight.position) > rot * -1 or rot > 0 and self.Avg(self.motorLeft.position, self.motorRight.position) > initial_rot + rot:
                 break
             correction = (self.gyro.angle - initial_deg) * multiplier
-            print(correction)
+            print(correction, self.gyro.angle)
             if correction > 99:
                 self.steer.on(-100, speed)
                 continue
@@ -392,17 +392,56 @@ class Runs:
             self.move.MoveWithGyro(40, 1427)
             self.move.TurnToDeg(0, 1)   
 
+    def run2(self):
+        self.move.gyro.reset()
+        self.time.sleep(0.5)
+        self.move.MoveWithGyro(-40, 1100, initial_deg=0)
+
     def run3(self):
         self.move.gyro.reset()
         self.time.sleep(0.5)
+        self.util.right.on(-10)
+        self.move.time.sleep(0.5)
         self.util.right.off(brake=True)
-        self.move.MoveWithGyro(40, 800, givenBrake=False, initial_deg=6)
-        self.util.right.on_for_degrees(40, 80, brake=True, block=False)
+
+        self.move.MoveWithGyro(40, 800, givenBrake=False, initial_deg=2)
+        self.util.right.on_for_degrees(40, 80+80, brake=True, block=False)
 
         self.move.MoveWithGyro(40, 100, initial_deg=-50, givenBrake=False)
-        self.move.MoveWithGyro(40, 1000, initial_deg=32, givenBrake=False)
-        self.move.MoveWithGyro(20, 150, initial_deg=32, givenBrake=False)
+        self.move.MoveWithGyro(40, 1000-500-200, initial_deg=45, givenBrake=False)
+        self.move.MoveWithGyro(40, 500+200, initial_deg=30, givenBrake=False)
+        self.move.MoveWithGyro(20, 150+150, initial_deg=30, givenBrake=False)
+
+        self.move.gyro.reset()
+        self.time.sleep(0.5)
+        self.move.MoveWithGyro(-40, 250, initial_deg=0)
+        self.move.TurnToDeg(-50, 1)
+        self.move.MoveWithGyro(20, 500, initial_deg=-50)
         
+        #teteje -169
+        #első kienged -12
+        #második kienged 600??? xddd
+        #első kidobás
+
+        
+        self.move.MoveWithGyro(-40, 100, initial_deg=-50)
+        self.move.TurnToDeg(-30, 1)
+        self.util.left.on_for_degrees(40, 300)
+        
+
+        self.move.TurnToDeg(-100, 1)
+        self.move.MoveWithGyro(40, 100, initial_deg=-100)
+        self.util.right.on_for_degrees(80, 300-80, brake=True)
+
+
+        self.move.MoveWithGyro(-40, 150, initial_deg=-100, givenBrake=False)
+        self.move.MoveWithGyro(-40, 50, initial_deg=-60, givenBrake=False)
+        self.move.MoveWithGyro(-40, 430, initial_deg=-80, givenBrake=False)
+
+        self.move.time.sleep(0.5)
+        self.move.MoveWithGyro(40, 450, initial_deg=-220, givenBrake=False)
+        self.move.TurnToDeg(-280, 1)
+        self.util.left.on_for_degrees(80, 900)
         
 
 
@@ -445,6 +484,9 @@ class Menu:
         previous_selected = 0
         previous_gyro = 0
         selected = 0
+        manualswitch = False
+        motorhandling = False
+        currently_handling = -1
         self.os.system("clear")
         print("Run "+str(selected))
         print("Gyro "+str(self.move.gyro.angle))
@@ -453,14 +495,18 @@ class Menu:
             
             if self.move.colorSensorMid.color_name in ["Black", "NoColor"]:
                 selected = 0
-            elif self.move.colorSensorMid.color_name == "Red":
-                selected = 3
-            elif self.move.colorSensorMid.color_name == "Green":
-                selected = 2
+            
             elif self.move.colorSensorMid.color_name == "Brown":
                 selected = 1
-            
-            if self.button.enter:
+            elif self.move.colorSensorMid.color_name == "White":
+                selected = 2
+            elif self.move.colorSensorMid.color_name == "Red":
+                selected = 3
+            elif self.move.colorSensorMid.color_name == "Blue":
+                selected = 4
+
+
+            if self.button.enter and not self.button.down:
                 self.os.system("clear")
                 print("STARTING")
                 if selected == 0:
@@ -472,8 +518,15 @@ class Menu:
                     continue
                 return selected
             elif self.button.right or self.button.left:
+                manualswitch = True
                 break
             elif self.button.down:
+                if self.button.enter:
+                    self.util.right.off(brake=False)
+                    self.util.left.off(brake=False)
+                    motorhandling = True
+                    break
+
                 self.util.right.on(30)
                 self.util.left.on(30)
                 self.time.sleep(0.1)
@@ -491,58 +544,94 @@ class Menu:
                 print(self.move.colorSensorMid.color_name)
             previous_selected = selected
             previous_gyro = self.move.gyro.angle
-        while True:
-            try:
-                if self.button.right:
 
-                    if selected == number_of_runs:
-                        selected = 1
-                        self.os.system("clear")
-                        print("Run "+str(selected))
-                        print("Gyro "+str(self.move.gyro.angle))
-                        print("MANUAL")
-                        self.time.sleep(sleeptime)
-                        continue
-                    
-                    self.os.system("clear")
-                    selected += 1
-                    print("Run "+str(selected))
-                    print("Gyro "+str(self.move.gyro.angle))
-                    print("MANUAL")
-                    self.time.sleep(sleeptime)
+        if manualswitch:
+            while True:
+                try:
+                    if self.button.right:
 
-                if self.button.left:
-                    
-                    if selected == 1:
-                        selected = number_of_runs
+                        if selected == number_of_runs:
+                            selected = 1
+                            self.os.system("clear")
+                            print("Run "+str(selected))
+                            print("Gyro "+str(self.move.gyro.angle))
+                            print("MANUAL")
+                            self.time.sleep(sleeptime)
+                            continue
+                        
                         self.os.system("clear")
+                        selected += 1
                         print("Run "+str(selected))
                         print("Gyro "+str(self.move.gyro.angle))
                         print("MANUAL")
                         self.time.sleep(sleeptime)
 
-                        continue
+                    if self.button.left:
+                        
+                        if selected == 1:
+                            selected = number_of_runs
+                            self.os.system("clear")
+                            print("Run "+str(selected))
+                            print("Gyro "+str(self.move.gyro.angle))
+                            print("MANUAL")
+                            self.time.sleep(sleeptime)
 
-                    selected -= 1
-                    self.os.system("clear")
-                    print("Run "+str(selected))
-                    print("Gyro "+str(self.move.gyro.angle))
-                    print("MANUAL")
-                    self.time.sleep(sleeptime)
-                    
+                            continue
+
+                        selected -= 1
+                        self.os.system("clear")
+                        print("Run "+str(selected))
+                        print("Gyro "+str(self.move.gyro.angle))
+                        print("MANUAL")
+                        self.time.sleep(sleeptime)
+                        
+                    if self.button.enter:
+                        self.time.sleep(0.5)
+                        return selected
+
+                    if previous_gyro != self.move.gyro.angle:
+                        self.os.system("clear")
+                        print("Run "+str(selected))
+                        print("Gyro "+str(self.move.gyro.angle))
+                        print("MANUAL")
+                    previous_gyro = self.move.gyro.angle
+
+                except KeyboardInterrupt:
+                    return None
+        elif motorhandling:
+            self.os.system("clear")
+            print("motorhandling")
+            print("left")
+            self.time.sleep(0.5)
+            while True:
+                if currently_handling == -1:
+                    while self.button.left:
+                        self.util.left.on(-20)
+                    while self.button.right:
+                        self.util.left.on(20)
+                elif currently_handling == 1:  
+                    while self.button.left:
+                        self.util.right.on(-20)
+                    while self.button.right:
+                        self.util.right.on(20)
+                
+
                 if self.button.enter:
-                    self.time.sleep(0.5)
-                    return selected
-
-                if previous_gyro != self.move.gyro.angle:
+                    motorhandling = False
+                    return None
+                elif self.button.down:
+                    currently_handling *= -1
                     self.os.system("clear")
-                    print("Run "+str(selected))
-                    print("Gyro "+str(self.move.gyro.angle))
-                    print("MANUAL")
-                previous_gyro = self.move.gyro.angle
+                    print("motorhandling")
+                    if currently_handling == -1: 
+                        print("left")
+                    elif currently_handling == 1: 
+                        print("right")
+                    self.time.sleep(0.2)
 
-            except KeyboardInterrupt:
-                return None
+                self.util.right.off(brake=False)
+                self.util.left.off(brake=False)
+
     def settarget(self, _target):
         global target
         target = _target

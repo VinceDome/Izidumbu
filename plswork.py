@@ -36,9 +36,19 @@ def speed():
     for i in range(1, 100):
         move.MoveWithGyro(i, 50, initial_deg=0, givenBrake=False)
 
+
+
 menu.settarget(30)
 #-1734, -2682
-runs.run3()
+
+"""
+util.left.on_for_degrees(40, 300)
+move.time.sleep(2)
+util.left.on_for_degrees(80, 900)
+"""
+
+move.TurnWithDeg(180)
+#runs.run3()
 
 
 move.drive.off(brake=False)

@@ -4,7 +4,7 @@ menu = Menu()
 move = Move()
 util = Util()
 import time, os
-
+testing_mode = True
 
 def CalibrateColor():
     dataL = []
@@ -30,13 +30,17 @@ default = 1
 menu.console.set_font("Lat15-Terminus32x16.psf.gz", True)
 menu.time.sleep(2)
 selected = 1
-print("Ready for sensor calibration?")
-while True:
-    if menu.button.enter:
-        break
-os.system("clear")
+if testing_mode:
+    menu.settarget(32)
+else:
+    print("Ready for sensor calibration?")
+    while True:
+        if menu.button.enter:
+            break
 
-menu.settarget(CalibrateColor())
+    os.system("clear")
+    menu.settarget(CalibrateColor())
+    
 while True:
     try:
         while True:
