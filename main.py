@@ -57,6 +57,32 @@ class Move:
             self.steer.on(correction, speed)
         self.steer.off(brake=givenBrake)
         print(self.gyro.angle)
+    
+    def ColorGyro(self, speed, initial_deg=False, multiplier=0.4, givenBrake=True):
+        if not initial_deg:
+            initial_deg = self.gyro.angle
+
+        speed *= -1
+
+        if speed < 0:
+            multiplier *= -1
+
+        while True:
+            #exits if the rot is passed
+            print("LIGTH", self.colorSensorRight.reflected_light_intensity)
+            if self.colorSensorRight.reflected_light_intensity < 15:
+                break
+            correction = (self.gyro.angle - initial_deg) * multiplier
+            print(correction, self.gyro.angle)
+            if correction > 99:
+                self.steer.on(-100, speed)
+                continue
+            elif correction < -99:
+                self.steer.on(100, speed)
+                continue
+            self.steer.on(correction, speed)
+        self.steer.off(brake=givenBrake)
+        print(self.gyro.angle)
 
     #turns a specified amount of degrees with the gyro
     def TurnWithDeg(self, deg):
@@ -138,7 +164,7 @@ class Move:
             print(self.gyro.angle)
 
     #turns to a specified angle, but doesn't choose the shortest path
-    def TurnToDeg(self, deg, tolerance, motors="ad", divider=4):
+    def TurnToDeg(self, deg, tolerance, motors="ab", divider=4):
         initial_deg = self.gyro.angle
         print(initial_deg)
         print(deg)
@@ -160,12 +186,12 @@ class Move:
                 elif remaining <= 10:
                     self.drive.on(-5, 5)
                     continue
-                if motors == "ad":
+                if motors == "ab":
                     print("driveleft:", remaining * -1 /divider, "driveright", {remaining/divider})
                     self.drive.on(remaining*-1/divider, remaining/divider)
                 elif motors == "a":
                     self.drive.on(remaining*-1/2, 0)
-                elif motors == "d":
+                elif motors == "b":
                     self.drive.on(0, remaining/2)
 
 
@@ -184,12 +210,12 @@ class Move:
                 elif remaining <= 10:
                     self.drive.on(7, -7)
                     continue
-                if motors == "ad":
+                if motors == "ab":
                     print("driverigth:", remaining * -1 / divider, "driveleft", remaining/divider)
                     self.drive.on(remaining/divider, remaining*-1/divider)
                 elif motors == "a":
                     self.drive.on(remaining/divider, 0)
-                elif motors == "d":
+                elif motors == "b":
                     self.drive.on(0, remaining*-1/divider)
 
 
@@ -378,11 +404,13 @@ class Util:
 
 #a class for storing the runs
 class Runs:
+    from ev3dev2.sound import Sound
     from main import Util, Move
     import time
     move = Move()
     util = Util()
-
+    
+    spkr = Sound()
     
     def pingpong(self):
         self.move.gyro.reset()
@@ -392,31 +420,35 @@ class Runs:
             self.move.MoveWithGyro(40, 1427)
             self.move.TurnToDeg(0, 1)   
 
+    
     def run2(self):
-        self.move.gyro.reset()
-        self.time.sleep(0.5)
-        self.move.MoveWithGyro(-40, 1100, initial_deg=0)
-
-    def run3(self):
         self.move.gyro.reset()
         self.time.sleep(0.5)
         self.util.right.on(-10)
         self.move.time.sleep(0.5)
         self.util.right.off(brake=True)
 
-        self.move.MoveWithGyro(40, 800, givenBrake=False, initial_deg=2)
+        self.move.MoveWithGyro(40, 800+40, givenBrake=False, initial_deg=3-1-1, multiplier = 0.8)
+        self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
         self.util.right.on_for_degrees(40, 80+80, brake=True, block=False)
 
+        #self.move.MoveWithGyro(40, 40, initial_deg=2+3-1)
+        """
         self.move.MoveWithGyro(40, 100, initial_deg=-50, givenBrake=False)
         self.move.MoveWithGyro(40, 1000-500-200, initial_deg=45, givenBrake=False)
+        
         self.move.MoveWithGyro(40, 500+200, initial_deg=30, givenBrake=False)
-        self.move.MoveWithGyro(20, 150+150, initial_deg=30, givenBrake=False)
+        self.move.MoveWithGyro(20, 150+150-150, initial_deg=30, givenBrake=False)
+        """
+        
+        self.move.MoveWithGyro(40, 700+400, initial_deg=30, givenBrake=False, multiplier=0.6)
+        self.move.MoveWithGyro(20, 150, initial_deg=30, givenBrake=False)
 
         self.move.gyro.reset()
         self.time.sleep(0.5)
-        self.move.MoveWithGyro(-40, 250, initial_deg=0)
+        self.move.MoveWithGyro(-40, 250-70, initial_deg=0)
         self.move.TurnToDeg(-50, 1)
-        self.move.MoveWithGyro(20, 500, initial_deg=-50)
+        self.move.MoveWithGyro(20, 500-50, initial_deg=-50)
         
         #teteje -169
         #első kienged -12
@@ -434,15 +466,71 @@ class Runs:
         self.util.right.on_for_degrees(80, 300-80, brake=True)
 
 
+        self.move.MoveWithGyro(-25, 200, initial_deg=-100, givenBrake=False)
+        self.move.TurnToDeg(-80-10, 1)
+        self.move.MoveWithGyro(-40, 500, initial_deg=-80-10, givenBrake=False)
+        """
         self.move.MoveWithGyro(-40, 150, initial_deg=-100, givenBrake=False)
         self.move.MoveWithGyro(-40, 50, initial_deg=-60, givenBrake=False)
         self.move.MoveWithGyro(-40, 430, initial_deg=-80, givenBrake=False)
+        """
 
         self.move.time.sleep(0.5)
-        self.move.MoveWithGyro(40, 450, initial_deg=-220, givenBrake=False)
+
+
+        self.move.MoveWithGyro(40, 300, initial_deg=-95)
+        self.util.right.on_for_degrees(-60, 350, block=False)
+        self.move.TurnToDeg(-165, 1)
+        self.move.MoveWithGyro(40, 200+200, initial_deg=-165)
+        self.move.TurnToDeg(-248, 1)
+        """
+        self.move.MoveWithGyro(40, 100, initial_deg=-120, givenBrake=False)
+        self.move.MoveWithGyro(40, 300, initial_deg=-180, givenBrake=False)
+        self.move.ColorGyro(40, initial_deg=-180)
+        self.move.TurnToDeg(-220, 1)
+        """
+
+        """
+        self.move.MoveWithGyro(40, 50, initial_deg=-150, givenBrake=False)
+        self.move.MoveWithGyro(40, 450-50, initial_deg=-220, givenBrake=False)
         self.move.TurnToDeg(-280, 1)
+        """
         self.util.left.on_for_degrees(80, 900)
         
+    def run3(self):
+        self.move.gyro.reset()
+        self.time.sleep(0.5)
+        
+        self.util.left.on_for_seconds(3, 2)
+        self.util.right.on_for_seconds(5, 2, block=False)
+        
+        self.move.MoveWithGyro(-40, 1100-200, initial_deg=5, multiplier = 0.5)
+        self.move.MoveWithGyro(-40, 200+100-100, initial_deg=0, multiplier = 0.6)
+
+        self.move.steer.on_for_degrees(0, 40, 150)
+
+        #lecsap mindent
+        self.util.left.on_for_degrees(-40, 300+100, block=False)
+        self.util.right.on_for_degrees(-40, 300)
+        
+        
+        self.move.time.sleep(0.5)
+        
+        #felemeli a repülőgép oldali kart
+        self.util.right.on_for_degrees(40, 500)
+        self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
+        self.util.right.on_for_degrees(-40, 275)
+        self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
+
+        #kicsit előre megy, felemeli a motort
+        self.move.MoveWithGyro(20, 60, initial_deg=0)
+        self.util.left.on_for_degrees(20, 300)
+
+        #hazajön
+        self.move.MoveWithGyro(40, 300, initial_deg=30, multiplier = 0.7)
+        self.util.right.on_for_degrees(-40, 100)
+        self.move.MoveWithGyro(80, 700, initial_deg=90, multiplier = 0.6)
+
 
 
 #a class for controlling the menu starting the runs
@@ -498,9 +586,9 @@ class Menu:
             
             elif self.move.colorSensorMid.color_name == "Brown":
                 selected = 1
-            elif self.move.colorSensorMid.color_name == "White":
-                selected = 2
             elif self.move.colorSensorMid.color_name == "Red":
+                selected = 2
+            elif self.move.colorSensorMid.color_name == "White":
                 selected = 3
             elif self.move.colorSensorMid.color_name == "Blue":
                 selected = 4
