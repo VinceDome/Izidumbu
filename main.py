@@ -32,8 +32,9 @@ class Move:
     """
 
     #moving forward with the gyro, while not resetting it at the start
-    def MoveWithGyro(self, speed, rot, initial_deg=False, multiplier=0.4, givenBrake=True):
+    def MoveWithGyro(self, speed, rot, initial_deg=False, multiplier=0.4, givenBrake=True, timeout=10000):
         initial_rot = self.Avg(self.motorLeft.position, self.motorRight.position)
+        
         if not initial_deg:
             initial_deg = self.gyro.angle
 
@@ -42,10 +43,14 @@ class Move:
         if speed < 0:
             multiplier *= -1
             rot *= -1
+
+        tic = self.time.perf_counter()
         while True:
             #exits if the rot is passed
             if rot < 0 and initial_rot - self.Avg(self.motorLeft.position, self.motorRight.position) > rot * -1 or rot > 0 and self.Avg(self.motorLeft.position, self.motorRight.position) > initial_rot + rot:
                 break
+            elif self.time.perf_counter() > tic + int(timeout):
+                break 
             correction = (self.gyro.angle - initial_deg) * multiplier
             print(correction, self.gyro.angle)
             if correction > 99:
@@ -418,15 +423,174 @@ class Runs:
             self.move.MoveWithGyro(40, 1427)
             self.move.TurnToDeg(180, 1)
             self.move.MoveWithGyro(40, 1427)
-            self.move.TurnToDeg(0, 1)   
+            self.move.TurnToDeg(0, 1) 
 
-    
+    def run1(self):
+        self.move.gyro.reset()
+        self.time.sleep(0.5)
+        self.util.left.on(10, brake=True)
+        self.util.right.on_for_seconds(10, 1)
+        self.move.MoveWithGyro(40, 870, initial_deg=5, givenBrake=True, multiplier=0.6)
+        self.move.TurnToDeg(45, 1)
+
+        self.move.MoveWithGyro(40, 100, initial_deg=45, givenBrake=False, multiplier=0.6)
+        self.move.MoveWithGyro(10, 200, initial_deg=70, multiplier=0.6, timeout=3)
+        self.move.MoveWithGyro(-20, 200, initial_deg=60)
+        self.move.TurnToDeg(50, 1)
+
+        self.move.MoveWithGyro(40, 700, initial_deg=45, givenBrake=False, multiplier=0.6)
+        self.move.MoveWithGyro(40, 370-50-5, initial_deg=50, multiplier=0.6)
+
+        
+        self.move.TurnToDeg(90-15-5, 1, motors="b")
+        self.move.TurnToDeg(135, 1, motors="a")
+        self.move.time.sleep(3)
+        self.move.MoveWithGyro(20, 100, initial_deg=135-10, givenBrake=False, multiplier=0.8)
+        self.move.MoveWithGyro(10, 300, initial_deg=135, multiplier=0.8, timeout=3)
+
+        #lecsap mindent
+        self.util.left.on_for_seconds(-40, 2)
+        self.move.time.sleep(1.5)
+        self.util.left.on_for_seconds(100, 2)
+        self.util.left.on(20)
+        self.util.right.on_for_degrees(-100, 350)
+        self.move.MoveWithGyro(-20, 300)
+        self.move.TurnToDeg(230, 1)
+        self.move.MoveWithGyro(40, 1000, initial_deg=230, multiplier=0.6)
+        self.move.TurnToDeg(180, 1)
+        self.move.MoveWithGyro(40, 600, initial_deg=180, multiplier=0.6)
+        self.move.TurnToDeg(230, 1)
+
+        self.move.MoveWithGyro(40, 1000, initial_deg=230, multiplier=0.6)
+
+
+
+        self.move.time.sleep(3)
+
     def run2(self):
+        self.move.gyro.reset()
+        self.time.sleep(0.5)
+        
+        self.util.left.on_for_seconds(3, 2)
+        self.util.right.on_for_seconds(5, 2, block=False)
+        
+        self.move.MoveWithGyro(-40, 1100-200, initial_deg=5, multiplier = 0.5)
+        self.move.MoveWithGyro(-40, 200+100-100, initial_deg=0, multiplier = 0.6)
+
+        self.move.steer.on_for_degrees(0, 40, 150)
+
+        #lecsap mindent
+        self.util.left.on_for_degrees(-100, 300+100, block=False)
+        self.util.right.on_for_degrees(-40, 300)
+        
+        
+        self.move.time.sleep(0.5)
+        
+        #felemeli a repülőgép oldali kart
+        self.util.right.on_for_degrees(40, 500)
+        self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
+        self.util.right.on_for_degrees(-40, 275-7)
+        self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
+
+        #kicsit előre megy, felemeli a motort
+        self.move.MoveWithGyro(20, 60+20, initial_deg=0)
+        self.util.left.on_for_degrees(20, 300)
+
+        #hazajön
+        self.move.MoveWithGyro(40, 300, initial_deg=30, multiplier = 0.7)
+        self.util.right.on_for_degrees(-40, 100)
+        self.move.MoveWithGyro(80, 700, initial_deg=90, multiplier = 0.6)
+
+    def run3(self):
+
         self.move.gyro.reset()
         self.time.sleep(0.5)
         self.util.right.on(-10)
         self.move.time.sleep(0.5)
         self.util.right.off(brake=True)
+
+
+        # ! TESTIIIIIIIIIIIIIIIING
+        
+        self.move.MoveWithGyro(40, 780-70+20+15-60, initial_deg=-4, multiplier=0.4-0.3, givenBrake=False)
+        
+        self.move.time.sleep(0.5)
+        #self.move.time.sleep(0.3)
+        self.move.TurnToDeg(33, 1)
+        
+        self.move.MoveWithGyro(20, 250-80, initial_deg=33, givenBrake=False, multiplier=0.4)
+        
+        self.util.right.on_for_degrees(40, 80+80, brake=True)
+
+        self.move.time.sleep(0.5)
+
+        self.move.MoveWithGyro(-40, 100, initial_deg=33, multiplier=0.4*0.7)        
+        self.move.TurnToDeg(-15, 1, divider=5.5)
+        self.move.MoveWithGyro(40, 100-40, initial_deg=-15, multiplier=0.3)
+        self.move.TurnToDeg(30, 1, divider=5.5)
+        self.move.MoveWithGyro(40, 1400-500, initial_deg=33, multiplier=0.6, givenBrake=False)
+        self.move.MoveWithGyro(40, 400, initial_deg=35, multiplier=0.6, timeout=3)
+        
+        """
+        self.move.MoveWithGyro(-40, 100, initial_deg=45, multiplier=0.4*0.7)
+        self.move.MoveWithGyro(40, 150, initial_deg=-20, givenBrake=0, multiplier=0.4*0.8)
+        self.move.MoveWithGyro(40, 300, initial_deg=35, givenBrake=False, multiplier=0.5)
+        self.move.MoveWithGyro(40, 850, initial_deg=30+2, givenBrake=False, multiplier=0.4*0.6)
+        """
+        """
+        self.move.MoveWithGyro(40, 780, initial_deg=-4, multiplier=0.4-0.3)
+        self.move.TurnToDeg(30, 1)
+        self.move.MoveWithGyro(20, 100, initial_deg=30, givenBrake=False, multiplier=0.4)
+        
+        self.util.right.on_for_degrees(40, 80+80, brake=True)
+                
+        self.move.MoveWithGyro(-40, 100, initial_deg=45, multiplier=0.4*0.65)
+        self.move.MoveWithGyro(40, 150, initial_deg=-20, givenBrake=0, multiplier=0.7*0.6)
+        self.move.MoveWithGyro(40, 300, initial_deg=35, givenBrake=False, multiplier=0.5*0.75)
+        self.move.MoveWithGyro(40, 850, initial_deg=30+2, givenBrake=False, multiplier=0.4*0.75)
+        """
+
+        #gyroresettől paste
+        self.move.gyro.reset()
+        self.time.sleep(0.5)
+        self.move.MoveWithGyro(-40, 250-70, initial_deg=0)
+        self.move.TurnToDeg(-50, 1)
+        self.move.MoveWithGyro(20, 500-50, initial_deg=-50, timeout=3)
+        
+        #teteje -169
+        #első kienged -12
+        #második kienged 600??? xddd
+        #első kidobás
+
+        
+        self.move.MoveWithGyro(-40, 100, initial_deg=-50)
+        self.move.TurnToDeg(-30, 1)
+        self.util.left.on_for_degrees(40, 300)
+        
+
+        self.move.TurnToDeg(-100, 1)
+        self.move.MoveWithGyro(40, 100, initial_deg=-100)
+        self.util.right.on_for_degrees(80, 300-80, brake=True)
+
+
+        self.move.MoveWithGyro(-25, 200, initial_deg=-100, givenBrake=False)
+        self.move.TurnToDeg(-80-10, 1)
+        self.move.MoveWithGyro(-40, 500, initial_deg=-80-10, givenBrake=False, timeout=4)
+  
+
+        self.move.time.sleep(0.5)
+
+
+        self.move.MoveWithGyro(40, 300, initial_deg=-95)
+        self.util.right.on_for_degrees(-60, 350, block=False)
+        self.move.TurnToDeg(-165, 1)
+        self.move.MoveWithGyro(40, 200+200-100, initial_deg=-165)
+        self.move.TurnToDeg(-248, 1)
+
+        self.util.left.on_for_degrees(80, 900)
+        
+        # ? JÓ... 
+        '''
 
         self.move.MoveWithGyro(40, 800+40, givenBrake=False, initial_deg=3-1-1, multiplier = 0.8)
         self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
@@ -497,40 +661,11 @@ class Runs:
         """
         self.util.left.on_for_degrees(80, 900)
         
-    def run3(self):
-        self.move.gyro.reset()
-        self.time.sleep(0.5)
-        
-        self.util.left.on_for_seconds(3, 2)
-        self.util.right.on_for_seconds(5, 2, block=False)
-        
-        self.move.MoveWithGyro(-40, 1100-200, initial_deg=5, multiplier = 0.5)
-        self.move.MoveWithGyro(-40, 200+100-100, initial_deg=0, multiplier = 0.6)
-
-        self.move.steer.on_for_degrees(0, 40, 150)
-
-        #lecsap mindent
-        self.util.left.on_for_degrees(-40, 300+100, block=False)
-        self.util.right.on_for_degrees(-40, 300)
-        
-        
-        self.move.time.sleep(0.5)
-        
-        #felemeli a repülőgép oldali kart
-        self.util.right.on_for_degrees(40, 500)
-        self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
-        self.util.right.on_for_degrees(-40, 275)
-        self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
-
-        #kicsit előre megy, felemeli a motort
-        self.move.MoveWithGyro(20, 60, initial_deg=0)
-        self.util.left.on_for_degrees(20, 300)
-
-        #hazajön
-        self.move.MoveWithGyro(40, 300, initial_deg=30, multiplier = 0.7)
-        self.util.right.on_for_degrees(-40, 100)
-        self.move.MoveWithGyro(80, 700, initial_deg=90, multiplier = 0.6)
-
+        '''
+    
+    def run4(self):
+        print("geci")
+    
 
 
 #a class for controlling the menu starting the runs
@@ -584,7 +719,7 @@ class Menu:
             if self.move.colorSensorMid.color_name in ["Black", "NoColor"]:
                 selected = 0
             
-            elif self.move.colorSensorMid.color_name == "Brown":
+            elif self.move.colorSensorMid.color_name == "Yellow":
                 selected = 1
             elif self.move.colorSensorMid.color_name == "Red":
                 selected = 2
@@ -656,7 +791,7 @@ class Menu:
 
                     if self.button.left:
                         
-                        if selected == 1:
+                        if selected == 1 or selected == 0:
                             selected = number_of_runs
                             self.os.system("clear")
                             print("Run "+str(selected))
@@ -736,7 +871,7 @@ class Menu:
         elif selected == 3:
             self.runs.run3()
             print("harmadik futam done")
-        if selected == 4:
+        elif selected == 4:
             self.runs.run4()
             print("negyedik futam done")
             return "end"

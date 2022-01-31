@@ -41,7 +41,8 @@ def speed():
 
 menu.settarget(30)
 #-1734, -2682
-
+move.MoveWithGyro(20, 100, initial_deg=135, givenBrake=False, multiplier=0.8)
+move.MoveWithGyro(10, 200+20, initial_deg=135, multiplier=0.8, timeout=3)
 
 move.gyro.reset()
 time.sleep(0.5)
