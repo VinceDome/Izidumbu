@@ -7,6 +7,7 @@ import time, os
 testing_mode = True
 
 def CalibrateColor():
+    global dataL, dataR
     dataL = []
     dataR = []
     tic = time.perf_counter()
@@ -31,7 +32,7 @@ menu.console.set_font("Lat15-Terminus32x16.psf.gz", True)
 menu.time.sleep(2)
 selected = 1
 if testing_mode:
-    menu.settarget(32)
+    menu.settarget(32, 0, 0, 0, 0)
 else:
     print("Ready for sensor calibration?")
     while True:
@@ -39,7 +40,7 @@ else:
             break
 
     os.system("clear")
-    menu.settarget(CalibrateColor())
+    menu.settarget(CalibrateColor(), min(dataL), max(dataL), min(dataR), max(dataL))
     
 while True:
     try:
