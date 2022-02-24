@@ -29,6 +29,8 @@ def CalibrateColor():
 stop = False
 default = 1
 menu.console.set_font("Lat15-Terminus32x16.psf.gz", True)
+#Lat15-Terminus22x11.psf.gz
+
 menu.time.sleep(2)
 selected = 1
 if testing_mode:

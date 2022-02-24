@@ -1,9 +1,11 @@
-from main import Move, Util, Runs, Menu
+#!/usr/bin/env micropython
+from main import Menu, Move, Runs, Util
 import time
 move = Move()
+menu = Menu()
 util = Util()
 runs = Runs()
-menu = Menu()
+menu.console.set_font("Lat15-Terminus32x16.psf.gz", True)
 
 
 def calibrate():
@@ -45,7 +47,8 @@ menu.settarget(30, 0, 0, 0, 0)
 move.gyro.reset()
 time.sleep(0.5)
 
-move.steer.on_for_seconds(0, -20, 5)
+move.motorLeft.on_for_seconds(-40, 3.5)
+move.steer.off()
 
 move.drive.off(brake=False)
 util.right.off(brake=False)
