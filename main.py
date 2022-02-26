@@ -3,10 +3,11 @@ class Move:
     from ev3dev2.motor import *
     from ev3dev2.sensor import *
     from ev3dev2.sensor.lego import *
+    from ev3dev2.sound import Sound
     from ev3dev2.led import Leds
     import os, time
     
-    
+    spkr = Sound()
     #Roberto
     drive = MoveTank(OUTPUT_B, OUTPUT_A)
     steer = MoveSteering(OUTPUT_B, OUTPUT_A)
@@ -18,6 +19,8 @@ class Move:
     colorSensorLeft = ColorSensor(INPUT_4)
     colorSensorMid = ColorSensor(INPUT_3)
     
+    def boop(self):
+        self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
     """
     #sappersrobot
     drive = MoveTank(OUTPUT_C, OUTPUT_B)
@@ -450,7 +453,6 @@ class Runs:
     import time
     move = Move()
     util = Util()
-    
     spkr = Sound()
     
     def pingpong(self):
@@ -468,7 +470,19 @@ class Runs:
         self.util.left.on(10, brake=True)
         self.util.right.on_for_seconds(10, 1, brake=False)
         self.move.time.sleep(0.5)
-        self.util.right.on_for_degrees(-15, 250)
+        rot = self.util.right.position
+        self.util.right.on(-15)
+        while True:
+            if self.util.right.position <= (rot - 250):
+                break
+            elif self.util.right.is_stalled:
+                self.move.boop()
+                self.util.right.off()
+                self.move.time.sleep(0.1)
+                self.util.right.on(-15)
+        
+        self.util.right.off()
+        #self.util.right.on_for_degrees(-15, 250)
         
         self.move.MoveWithGyro(40, 370, initial_deg=7, multiplier=1.5)
         self.move.TurnToDeg(-360, 270, motors="b")
@@ -487,7 +501,7 @@ class Runs:
         self.move.MoveWithGyro(-40, 900, initial_deg=-90, multiplier=1, givenBrake=False)
         self.move.MoveWithGyro(-20, 350, initial_deg=-90, multiplier=1, timeout=2)
 
-        self.move.MoveWithGyro(20, 235-5-10, initial_deg=-90, multiplier=1)
+        self.move.MoveWithGyro(20, 235, initial_deg=-90, multiplier=1)
         self.move.TurnToDeg(-173, 1, motors="a")
 
         #rámegy a sortingra
@@ -514,14 +528,23 @@ class Runs:
         #felemeli a kart
         self.util.left.on(100)
         print(self.util.left.state)
-        self.move.time.sleep(2)
+
+        tic = self.time.perf_counter()
+        while True:
+            if self.util.left.is_stalled:
+                self.move.boop()
+                self.util.left.off()
+                self.move.time.sleep(0.1)
+                self.util.left.on(100)
+            elif self.time.perf_counter() > tic + 2:
+                break
+
         print(self.util.left.state)
         self.util.left.off()
 
-        for i in range(4):
-            self.util.left.on(100)
-            self.move.time.sleep(0.3)
-            self.util.left.off()
+        
+
+        
         
         self.util.left.on(20)
     
@@ -692,20 +715,22 @@ class Runs:
         self.move.MoveWithGyro(15, 200, initial_deg=171, givenBrake=False, multiplier=1.5)
 
         #leengedi
-        self.util.left.on_for_degrees(20, 160)
+        self.util.left.on_for_degrees(10, 160)
         self.move.time.sleep(0.8)
 
         #hátramegy
         self.move.drive.on(-2, -2)
         self.move.time.sleep(0.3)
         self.move.MoveWithGyro(-20, 50, givenBrake=False)
-        self.move.MoveWithGyro(-20, 200, initial_deg=190, multiplier=1, givenBrake=False)
+        self.move.MoveWithGyro(-20, 200, initial_deg=180, multiplier=1, givenBrake=False)
         self.move.MoveWithGyro(-30, 300, initial_deg=170, timeout=3, multiplier=0.8, givenBrake=False)
+        
+
+        
         self.move.time.sleep(0.5)
         self.move.motorLeft.on(70)
         self.move.time.sleep(1.5)
         self.move.motorLeft.off()
-
 
         self.move.time.sleep(0.5)
         self.util.right.on_for_degrees(-60, 40, brake=True)
@@ -715,11 +740,13 @@ class Runs:
 
 
         self.move.MoveWithGyro(10, 20, initial_deg=178)
-        self.move.TurnToDeg(120-15, 1, motors="b", divider=5)
+        
+        self.move.TurnToDeg(105, 1, motors="b", divider=5, timeout=3)
         self.util.left.on_for_degrees(-50, 160)
-        self.move.TurnToDeg(120, 1, motors="a", divider=5)
+        self.move.TurnToDeg(120, 1, motors="a", divider=5, timeout=2.5)
         self.move.MoveWithGyro(20, 100, initial_deg=120, timeout=3, givenBrake=False)
         self.move.MoveWithGyro(30, 600, initial_deg=127, multiplier=0.8, timeout=2.5)
+        
         self.move.MoveWithGyro(-60, 100, initial_deg=90, givenBrake=False)
      
 
@@ -822,20 +849,57 @@ class Runs:
         self.time.sleep(0.5)
         self.util.left.on(3)
         self.util.right.on(-5)
+
+        self.move.MoveWithGyro(60, 1300-500, initial_deg=-3, givenBrake=False)
+        self.move.MoveWithGyro(60, 500, initial_deg=25)
+        self.move.TurnToDeg(-20, 1, motors="b")
+        self.move.MoveWithGyro(40, 200, initial_deg=-20, timeout=2)
+
+        """
         self.move.MoveWithGyro(60, 1700-400, initial_deg=-1, givenBrake=False)
         self.move.MoveWithGyro(40, 400, initial_deg=-1, timeout=2.5)
+        """
+
         self.move.steer.on(-40, -80)
-        self.move.time.sleep(2)
+        self.move.time.sleep(1)
         self.move.steer.off()
+
+        self.move.time.sleep(0.2)
 
         self.move.motorRight.on(-100)
         self.move.time.sleep(1)
         self.move.motorRight.off()
+        
 
-        self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
-        self.util.left.on_for_degrees(-40, 400)
-        self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
-        self.util.right.on_for_degrees(100, 2700, block=True)
+        #self.util.left.on_for_degrees(-40, 400)
+        rot = self.util.left.position
+        while True:
+            if self.util.left.position <= (rot - 100):
+                break
+            elif self.util.left.is_stalled:
+                self.move.boop()
+                self.util.left.off()
+                self.move.time.sleep(0.3)
+                self.util.left.on(-40)
+                self.move.time.sleep(0.5)
+                
+        self.util.left.off()
+
+   
+        self.util.right.on(100)
+        tic = self.time.perf_counter()
+        while True:
+            if self.time.perf_counter() > tic + 3:
+                break
+            elif self.util.right.is_stalled:
+                self.move.boop()
+                self.util.right.off ()
+                self.move.time.sleep(0.2)
+                self.util.right.on(100)
+        self.util.right.off()
+
+        #self.util.right.on_for_degrees(100, 2700, block=False)
+
 
         """
         tic = self.time.perf_counter()
@@ -845,7 +909,6 @@ class Runs:
                 break
         """
 
-        self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
         self.util.right.on_for_degrees(-100, 2500, block=False)
         """
         tic = self.time.perf_counter()
@@ -857,7 +920,7 @@ class Runs:
         self.move.time.sleep(0.5)
         #-54 elvileg a merőleges a hídra
 
-        self.move.MoveWithGyro(-20, 230, initial_deg=-54, timeout=2.5)
+        self.move.MoveWithGyro(-20, 230, timeout=2.5)
         self.move.TurnToDeg(40, 1, timeout=2)
         self.move.MoveWithGyro(-20, 100, initial_deg=40)
 
@@ -884,7 +947,7 @@ class Menu:
 
     leds = Leds()
     #buttonS = TouchSensor()
-    sound = Sound()
+    spkr = Sound()
     button = Button()
     console =  Console()
 
@@ -895,6 +958,8 @@ class Menu:
     def both(self, color):
         self.leds.set_color("LEFT", color)
         self.leds.set_color("RIGHT", color)
+
+
 
     def selection(self, default):
         sleeptime = 0.3
@@ -941,6 +1006,9 @@ class Menu:
                 else:
                     self.util.left.on(10)
                     self.util.right.on(3)
+                    if self.util.left.is_stalled:
+                        self.util.left.off()
+
             elif self.move.colorSensorMid.color_name == "White":
                 selected = 2
                 
