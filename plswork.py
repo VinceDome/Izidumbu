@@ -45,14 +45,18 @@ menu.settarget(30, 0, 0, 0, 0)
 #-1734, -2682
 
 move.gyro.reset()
-time.sleep(0.5)
+move.time.sleep(0.5)
 
-move.motorLeft.on_for_seconds(-40, 3.5)
-move.steer.off()
+move.MoveWithGyro(-20, 4000, initial_deg = 360)
+
 
 move.drive.off(brake=False)
 util.right.off(brake=False)
 util.left.off(brake=False)
+
+
+
+ 
 
 
 
