@@ -44,11 +44,33 @@ def speed():
 menu.settarget(30, 0, 0, 0, 0)
 #-1734, -2682
 
+"""
 move.gyro.reset()
 move.time.sleep(0.5)
+"""
 
-move.MoveWithGyro(-20, 4000, initial_deg = 360)
+gyroB = 0
+gyroBL = [0]
 
+menu.both("GREEN")
+while True:
+    diff = move.gyro.angle-gyroB
+    print(diff)
+    
+
+    if not min(gyroBL) < max(gyroBL) - 10:
+        if max(gyroBL) > 5 or min(gyroBL) < -5:
+            if len(gyroBL) <= 38:
+                break
+    
+    gyroBL.append(diff)
+    if len(gyroBL) >= 40:
+        del gyroBL[0]
+    gyroB = move.gyro.angle
+    time.sleep(0.05)
+
+menu.both("RED")
+time.sleep(2)
 
 move.drive.off(brake=False)
 util.right.off(brake=False)
@@ -56,7 +78,9 @@ util.left.off(brake=False)
 
 
 
- 
+#hajrá cuki nagyon ügyi vagy és nagyon nagyon
+#szerelmes vagyok beléd és jobban szeetlek, mint
+#valaha bárkit
 
 
 
