@@ -31,7 +31,7 @@ default = 1
 menu.console.set_font("Lat15-Terminus32x16.psf.gz", True)
 #Lat15-Terminus22x11.psf.gz
 
-menu.time.sleep(2)
+
 selected = 1
 if testing_mode:
     menu.settarget(32, 0, 0, 0, 0)
@@ -50,15 +50,15 @@ while True:
             selected = menu.selection(default)
             if selected == None:
                 continue
-            isdone = menu.run(selected)
+            default = menu.run(selected)
             #menu.time.sleep(1)
-            if isdone == "end":
+            if default == "end":
                 stop = True
                 break
     except KeyboardInterrupt:
         move.drive.off(brake=False)
-        util.right.off(brake=False)
-        util.left.off(brake=False)
+        util.lever.off(brake=False)
+        util.topping.off(brake=False)
         default = selected
         print("interrupted")
         #time.sleep(2)

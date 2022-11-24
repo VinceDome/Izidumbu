@@ -2,8 +2,11 @@
 from main import Menu, Move
 move = Move()
 menu = Menu()
+
+menu.both("RED")
 move.gyro.calibrate()
-move.time.sleep(1)
+menu.both("GREEN")
+move.time.sleep(0.5)
 menu.console.set_font("Lat15-Terminus32x16.psf.gz", True)
 print("kalibráltam")
 move.g(100, 10, initial_deg = 0)

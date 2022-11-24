@@ -1,6 +1,6 @@
 #!/usr/bin/env micropython
 from main import Menu, Move, Runs, Util
-import time
+import time, random
 move = Move()
 menu = Menu()
 util = Util()
@@ -44,13 +44,29 @@ def speed():
 menu.settarget(30, 0, 0, 0, 0)
 #-1734, -2682
 
+move.g(60, 1000, rampdown=[0, 500])
+
+move.time.sleep(5)
 """
 move.gyro.reset()
 move.time.sleep(0.5)
 """
 
+
+
+
+"""
+for i in range(30):
+    fok = random.randint(-300, 300)
+    move.t(fok)
+    time.sleep(0.5)
+    print(fok, move.gyro.angle)
+
+"""
+"""
 gyroB = 0
 gyroBL = [0]
+
 
 menu.both("GREEN")
 while True:
@@ -72,15 +88,14 @@ while True:
 menu.both("RED")
 time.sleep(2)
 
+"""
 move.drive.off(brake=False)
-util.right.off(brake=False)
-util.left.off(brake=False)
+util.lever.off(brake=False)
+util.topping.off(brake=False)
+
+ 
 
 
-
-#hajrá cuki nagyon ügyi vagy és nagyon nagyon
-#szerelmes vagyok beléd és jobban szeetlek, mint
-#valaha bárkit
 
 
 

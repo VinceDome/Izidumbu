@@ -1,3 +1,5 @@
+import math, os, time
+
 #a class for all functions that make the robot move using the motors and sensors
 class Move:
     from ev3dev2.motor import *
@@ -5,9 +7,10 @@ class Move:
     from ev3dev2.sensor.lego import *
     from ev3dev2.sound import Sound
     from ev3dev2.led import Leds
-    import os, time
+ 
     
     spkr = Sound()
+    """
     #Roberto
     drive = MoveTank(OUTPUT_B, OUTPUT_A)
     steer = MoveSteering(OUTPUT_B, OUTPUT_A)
@@ -18,14 +21,30 @@ class Move:
     colorSensorRight = ColorSensor(INPUT_1)
     colorSensorLeft = ColorSensor(INPUT_4)
     colorSensorMid = ColorSensor(INPUT_3)
+    """
+
+    #? IDK the name, new robot
     
+    drive = MoveTank(OUTPUT_A, OUTPUT_D)
+    steer = MoveSteering(OUTPUT_A, OUTPUT_D)
+    motorLeft = Motor(OUTPUT_A)
+    motorRight = Motor(OUTPUT_D)
+
+    gyro = GyroSensor(INPUT_1)
+    
+    colorSensorLeft = ColorSensor(INPUT_2)
+    colorSensorRight = ColorSensor(INPUT_3)
+
+    
+
+
     def boop(self):
         self.spkr.beep(play_type=self.Sound.PLAY_NO_WAIT_FOR_COMPLETE)
 
     #basic average calculator for two numbers
     def Avg(self, number1, number2):
-        sum = number1 + number2
-        return sum / 2 
+        sum_ = number1 + number2
+        return sum_ / 2 
      
     """
     #sappersrobot
@@ -41,23 +60,31 @@ class Move:
     """
 
     #moving forward with the gyro, while not resetting it at the start
-    def g(self, speed, rot, initial_deg=False, multiplier=0.4, givenBrake=True, turnOffMotors = True, rampup=[0, 0], rampdown=[0, 0], timeout=10000):
+    def g(self, speed, rot, initial_deg=False, multiplier=1.5, givenBrake=True, turnOffMotors = True, rampup=[0, 0], rampdown=[0, 0], timeout=10000):
         initial_rot = self.Avg(self.motorLeft.position, self.motorRight.position)
         
         if not initial_deg:
             initial_deg = self.gyro.angle
         
-        diffU = (speed - rampup[0]) * -1
-        diffD = (rampdown[0] - speed) * -1
+        diffU = (speed - rampup[0])
+        diffD = (speed - rampdown[0])
 
-        speed *= -1
+        #rampup[0] = honnan rampupol a speedre
+        #rampup[1] = hány mp alatt rampupol
+        #rampdown[0] = hova rampdownol
+        ##rampdown[1] = hány fok alatt rampdownol a végén
+
+        if rampdown[0] > 0:
+            turnOffMotors = False
+  
         _speed = speed
 
         if speed < 0:
             multiplier *= -1
             rot *= -1
+            diffD *= -1
 
-        tic = self.time.perf_counter()
+        tic = time.perf_counter()
 
         
 
@@ -66,27 +93,38 @@ class Move:
             #exits if the rot is passed
             if rot < 0 and initial_rot - self.Avg(self.motorLeft.position, self.motorRight.position) > rot * -1 or rot > 0 and self.Avg(self.motorLeft.position, self.motorRight.position) - initial_rot > rot:
                 break
-            elif self.time.perf_counter() > tic + timeout:
+            elif time.perf_counter() > tic + timeout:
                 break
 
-            if not self.time.perf_counter() - tic > rampup[1]:
-                ratio = (self.time.perf_counter() - tic) / rampup[1]
+            if not time.perf_counter() - tic > rampup[1]:
+                ratio = (time.perf_counter() - tic) / rampup[1]
                 speed = (ratio * diffU) - rampup[0]
+                if speed < -100:
+                    speed = -100
+                elif speed > 100:
+                    speed = 100
             else:
                 speed = _speed
 
 
 
             if rot < 0 and rampdown[1] != 0:
-                if (rot * -1) - (initial_rot - self.Avg(self.motorLeft.position, self.motorRight.position)) < rampdown[1]:     
-                    ratio = ((rot * -1) - (initial_rot - self.Avg(self.motorLeft.position, self.motorRight.position))) / rampdown[1]
-                    speed = ((ratio * diffD) - rampdown[0])
-            elif rot > 0 and rampdown[1] != 0:
-                if rot - (self.Avg(self.motorLeft.position, self.motorRight.position) - initial_rot) < rampdown[1]:
-                    ratio = rot - (self.Avg(self.motorLeft.position, self.motorRight.position) - initial_rot) / rampdown[1]
+                remaining = (rot * -1) - (initial_rot - self.Avg(self.motorLeft.position, self.motorRight.position))
+                if remaining < rampdown[1]:     
+                    ratio = remaining / rampdown[1]
                     speed = (ratio * diffD) - rampdown[0]
-            
 
+
+            elif rot > 0 and rampdown[1] != 0:
+                remaining = rot - (self.Avg(self.motorLeft.position, self.motorRight.position) - initial_rot)
+                if remaining < rampdown[1]:
+                    ratio = remaining / rampdown[1]
+                    speed = (ratio * diffD) + rampdown[0]
+                    if speed < 10:
+                        speed = 10
+           
+            
+        
             correction = (self.gyro.angle - initial_deg) * multiplier
             #print(correction, self.gyro.angle)
 
@@ -97,8 +135,7 @@ class Move:
                 self.steer.on(-100, speed)
                 continue
 
-            
-            print(speed)
+            #print(self.gyro.angle, correction)
             self.steer.on(correction, speed)
 
         if turnOffMotors:
@@ -106,46 +143,85 @@ class Move:
        
 
         print(self.gyro.angle)
-    
-       #turns to a specified angle, but doesn't choose the shortest path
-    def t(self, deg, tolerance, motors="ab", divider=4, timeout=10000):
+
+    def t(self, deg, timeout=10000, motors="ad", givenBrake=True, turnOffMotors=True):
         initial_deg = self.gyro.angle
-        print(initial_deg)
-        print(deg)
+
+        remaining = deg - self.gyro.angle
+        while remaining != 0:
+            remaining = deg - self.gyro.angle
+
+            remaining = math.copysign(min(abs(remaining) ** 1, 100), remaining)
+
+
+            """
+            if remaining < 0 and remaining > -3:
+                remaining = -3
+            elif remaining > 0 and remaining < 3:
+                remaining = 3
+            """
+            if motors == "ad":
+                self.drive.on(-remaining, remaining)
+            elif motors == "a":
+                self.drive.on(-remaining, 0)
+            elif motors == "d":
+                self.drive.on(0, remaining)
+
+        if turnOffMotors:
+            self.drive.off(brake=givenBrake)
+
+    '''    
+       #turns to a specified angle, but doesn't choose the shortest path
+    def t(self, deg, tolerance, motors="ab", timeout=10000):
         
+        
+        initial_deg = self.gyro.angle
+        print("intial", initial_deg)
+        print("target", deg)
+        
+        remaining = deg - self.gyro.angle
+        prevgyro = self.gyro.angle
+        multiplier = 0.25
 
-
-        tic = self.time.perf_counter()
+        tic = time.perf_counter()
         if initial_deg < deg:
-            while self.gyro.angle < deg - tolerance:
+            while remaining != 0 or prevgyro != self.gyro.angle:
+                
                 print("angle", self.gyro.angle)
-                remaining = abs(deg - self.gyro.angle)
+                remaining = deg - self.gyro.angle
                 print("remaining", remaining)
                 
-                if self.time.perf_counter() > tic + timeout:
+                if time.perf_counter() > tic + timeout:
                     break
 
 
                 if remaining > 100:
                     if motors == "ab":
-                        self.drive.on(-100, 100)
+                        self.drive.on(-50, 50)
                     elif motors == "a":
                         self.drive.on(-100, 0)
                     elif motors == "b":
                         self.drive.on(0, 100)
                     continue
+                
+                """
                 elif remaining <= 3:
                    break
                 elif remaining <= 10:
-                    self.drive.on(-5, 5)
+                    self.drive.on(-7, 7)
                     continue
+                """
+
+
+                #Áron okos: min(kiszámolt szar, 100)
                 if motors == "ab":
-                    print("driveleft:", remaining * -1 /divider, "driveright", {remaining/divider})
-                    self.drive.on(remaining*-1/divider, remaining/divider)
+                    print("driveleft:", remaining *-multiplier, "driveright", {remaining*multiplier})
+                    self.drive.on(min(remaining*-multiplier/2, -5), max(remaining*multiplier/2, 5))
                 elif motors == "a":
-                    self.drive.on(remaining*-1/2, 0)
+                    self.drive.on(remaining*-multiplier, 0)
                 elif motors == "b":
-                    self.drive.on(0, remaining/2)
+                    self.drive.on(0, remaining*-multiplier)
+                prevgyro = self.gyro.angle
 
 
         elif initial_deg > deg:
@@ -154,7 +230,7 @@ class Move:
                 print("angle", self.gyro.angle)
                 print("remaining", remaining)
                 
-                if self.time.perf_counter() > tic + timeout:
+                if time.perf_counter() > tic + timeout:
                     break
 
                 if remaining > 100:
@@ -171,12 +247,12 @@ class Move:
                     self.drive.on(7, -7)
                     continue
                 if motors == "ab":
-                    print("driverigth:", remaining * -1 / divider, "driveleft", remaining/divider)
-                    self.drive.on(remaining/divider, remaining*-1/divider)
+                    print("driverigth:", remaining *-multiplier, "driveleft", remaining*multiplier)
+                    self.drive.on(remaining*multiplier, remaining*-multiplier)
                 elif motors == "a":
-                    self.drive.on(remaining/divider, 0)
+                    self.drive.on(remaining*multiplier, 0)
                 elif motors == "b":
-                    self.drive.on(0, remaining*-1/divider)
+                    self.drive.on(0, remaining*-multiplier)
 
 
         """
@@ -201,7 +277,7 @@ class Move:
 
 
         self.drive.off()
-        if self.time.perf_counter() > tic + timeout:
+        if time.perf_counter() > tic + timeout:
             return
         
         if tolerance == 0:
@@ -214,9 +290,10 @@ class Move:
                 while deg > self.gyro.angle:
                     self.drive.on(-1.5, 1.5)
             self.drive.off()
-            for i in range(5):
-                print(self.gyro.angle)
 
+        for i in range(5):
+            print(self.gyro.angle)
+    '''
     #turns a specified amount of degrees with the gyro
     def TurnWithDeg(self, deg):
         initial_deg = self.gyro.angle
@@ -455,8 +532,8 @@ class Util:
     from ev3dev2.console import Console
     import os, time
 
-    left = Motor(OUTPUT_C)
-    right = Motor(OUTPUT_D)
+    topping = Motor(OUTPUT_B)
+    lever = Motor(OUTPUT_C)
     
 
 #a class for storing the runs
@@ -472,27 +549,93 @@ class Runs:
         self.move.gyro.reset()
         for i in range(4):
             self.move.g(40, 1427, initial_deg=0)
-            self.move.t(180, 1)
+            self.move.t(180)
             self.move.g(40, 1427, initial_deg=180)
-            self.move.t(0, 1) 
+            self.move.t(0) 
 
     def run1(self):
         self.move.gyro.reset()
         self.move.time.sleep(0.5)
         
-        self.move.g(80, 2000, initial_deg=0, rampup=[0, 1], turnOffMotors = False)
-        self.move.g(10, 400, rampup=[80, 1])
+        self.util.lever.on(-100)
+        while not self.util.lever.is_stalled:
+            pass
+        self.util.lever.off()
+
+        self.move.g(-80, 700, initial_deg=0, rampup = [0, 0.5], rampdown=[0, 200])
         
 
     def run2(self):
         self.move.gyro.reset()
         self.move.time.sleep(0.5)
 
-        self.move.t(90, 1)
+        self.move.t(90)
+
     def run3(self):
-        pass
+        self.move.gyro.reset()
+        self.move.time.sleep(0.5)
+
+        
+        self.util.lever.on(-100)
+        while not self.util.lever.is_stalled:
+            pass
+        self.util.lever.off()
+
+        self.move.g(90, 3500, rampup=[0, 1.5], givenBrake=False)
+
     def run4(self):
-        pass
+
+        #gyro reset
+        self.move.gyro.reset()
+        self.move.time.sleep(0.5)
+        
+        #lehúzza
+        self.util.lever.on(-100)
+        while not self.util.lever.is_stalled:
+            pass
+        self.util.lever.off()
+
+
+        #előremegy
+        self.move.g(70, 1600, initial_deg=0, rampup=[30, 0.3], rampdown = [0, 300])
+
+        #rááll a falra
+        self.move.t(-25, motors="a", turnOffMotors=False)
+        self.move.g(40, 200, initial_deg=-25, turnOffMotors=False)
+        self.move.t(-65, motors="a", givenBrake=False, turnOffMotors=False)
+
+        #előremegy és elfordul a faltól
+        self.move.g(40, 150, initial_deg=-65, rampdown=[0, 50])
+        self.move.t(-130, motors="a")
+
+        #előremegy, aztán hirtelen vissza, és ráfordul az egyenesre
+        self.move.g(60, 600, initial_deg=-130)
+        self.util.lever.on_for_degrees(100, 350, block=False)
+        self.move.g(-60, 100, initial_deg=-130, turnOffMotors=False)
+        self.move.g(-60, 265, initial_deg=-90)
+        self.move.t(-245)
+        self.util.lever.on_for_degrees(-100, 350, block=False)
+
+        #elmegy a missionhöz
+        self.move.g(80, 900, initial_deg=-245, rampdown = [0, 300])
+
+        #háromszor kart emel
+        for i in range(3):
+            self.util.lever.on_for_degrees(100, 270)
+            self.util.lever.on_for_degrees(-100, 270)
+
+        #párhuzamosan ráparkol
+        self.move.t(-303, motors="d")
+        self.move.t(-345, motors="a")
+
+        self.util.lever.on_for_degrees(100, 200, block=False)
+        self.move.g(20, 160, initial_deg=-303)
+        self.util.lever.on_for_degrees(-100, 50)
+
+        self.move.g(-20, 300)
+
+
+
     def run5(self):
         pass
 
@@ -532,30 +675,31 @@ class Menu:
 
         self.both("GREEN")
         sleeptime = 0.3
-        self.os.system("clear")
+        os.system("clear")
         number_of_runs = 5
         self.move.drive.off(brake=False)
-        self.util.right.off(brake=False)
-        self.util.left.off(brake=False)
-        self.time.sleep(0.5)
+        self.util.lever.off(brake=False)
+        self.util.topping.off(brake=False)
+
+        time.sleep(0.5)
+
         previous_selected = 0
         previous_gyro = 0
-        selected = 0
+        selected = default
         manualswitch = False
         motorcontrol = False
-        motorWiggle = False
-        currently_handling = -1
+        currently_handling = 1
         gyroB = 0
 
         def printmenu():
-            self.os.system("clear")
+            os.system("clear")
             printed_run = selected
 
             print("Run "+str(printed_run))
             print("Gyro "+str(self.move.gyro.angle))
-            print(self.move.colorSensorMid.color_name)
        
         while True:
+            #making the leds red when the gyro is moving
             diff = self.move.gyro.angle-gyroB
             if diff != 0:
                 self.both("RED")
@@ -563,83 +707,44 @@ class Menu:
                 self.both("GREEN")
             gyroB = self.move.gyro.angle
 
-            if self.move.colorSensorMid.color_name in ["Black", "NoColor"]:
-                selected = 0
-                motorWiggle = True
-                self.util.right.on(30)
-                self.util.left.on(30)
-                self.time.sleep(0.1)
-                self.util.right.on(-30)
-                self.util.left.on(-30)
-                self.time.sleep(0.1)
-            elif self.move.colorSensorMid.color_name == "Yellow":
-                selected = 1
 
-                if motorWiggle:
-                    for i in range(3):
-                        self.util.right.on(30)
-                        self.util.left.on(30)
-                        self.time.sleep(0.1)
-                        self.util.right.on(-30)
-                        self.util.left.on(-30)
-                        self.time.sleep(0.1)
-                    motorWiggle = False
-                else:
-                    self.util.left.on(10)
-                    #self.util.right.on(3)
-                    self.util.right.on(-20)
-                    if self.util.left.is_stalled:
-                        self.util.left.off()
+            #selection
+            if self.button.right:
+                if selected == number_of_runs:
+                    selected = 1
+                    printmenu()
+                    self.time.sleep(sleeptime)
+                    continue
 
-            elif self.move.colorSensorMid.color_name == "White":
-                selected = 2
-                
-                if motorWiggle:
-                    for i in range(3):
-                        self.util.right.on(30)
-                        self.util.left.on(30)
-                        self.time.sleep(0.1)
-                        self.util.right.on(-30)
-                        self.util.left.on(-30)
-                        self.time.sleep(0.1)
-                    motorWiggle = False
-                else:
-                    self.util.left.on(5)
-                    self.util.right.on(10)
-            elif self.move.colorSensorMid.color_name == "Red":
-                selected = 3
-                if motorWiggle:
-                    for i in range(3):
-                        self.util.right.on(30)
-                        self.util.left.on(30)
-                        self.time.sleep(0.1)
-                        self.util.right.on(-30)
-                        self.util.left.on(-30)
-                        self.time.sleep(0.1)
-                    motorWiggle = False
-                else:
-                    self.util.left.on(-5)
-                    self.util.right.on(5)
-            elif self.move.colorSensorMid.color_name == "Blue":
-                selected = 5
-                if motorWiggle:
-                    for i in range(3):
-                        self.util.right.on(30)
-                        self.util.left.on(30)
-                        self.time.sleep(0.1)
-                        self.util.right.on(-30)
-                        self.util.left.on(-30)
-                        self.time.sleep(0.1)
-                    motorWiggle = False
-                else:
-                    self.util.left.on(3)
-                    self.util.right.on(-3)
+                selected += 1
+                printmenu()
+                self.time.sleep(sleeptime)
 
+            if self.button.left:
+                if selected == 1:
+                    selected = number_of_runs
+                    printmenu()
+                    self.time.sleep(sleeptime)
+                    continue
+
+                selected -= 1
+                printmenu()
+                self.time.sleep(sleeptime)
+            
+            #motor pulling
+            if selected == 1:
+                #nemtommilyenmotor
+                pass
+            elif selected == 2:
+                #difförönt kájnd of motor
+                pass
+
+            #launching runs
             if self.button.enter and not self.button.down:
-                self.util.right.off()
-                self.util.left.off()
+                self.util.lever.off()
+                self.util.topping.off()
                 self.both("ORANGE")
-                self.os.system("clear")
+                os.system("clear")
                 print("ARMED")
                 
                 while self.button.enter:
@@ -653,100 +758,47 @@ class Menu:
                     continue
 
                 return selected
-            elif self.button.right or self.button.left:
-                self.util.right.off(brake=False)
-                self.util.left.off(brake=False)
-                manualswitch = True
-                break
+
+            #motorwiggle and motorcontrol launching
             elif self.button.down:
-                motorcontrol = True
-                break
-                         
+                if self.button.enter:
+                    self.util.topping.off()
+                    self.util.lever.off()
+                    motorcontrol = True
+                    break
+                else:
+                    self.util.topping.on(30)
+                    self.time.sleep(0.1)
+                    self.util.topping.on(-30)
+                    self.time.sleep(0.1)
+            else:
+                self.util.topping.off()
+                self.util.lever.off()
+                   
             
-                
+            
             if selected != previous_selected or previous_gyro != self.move.gyro.angle:
                 printmenu()
             previous_selected = selected
             previous_gyro = self.move.gyro.angle
 
-        def printmenuM():
-            self.os.system("clear")
-            printed_run = selected
-
-            print("Run "+str(printed_run))
-            print("Gyro "+str(self.move.gyro.angle))
-            print("MANUAL")
-
-        if manualswitch:
-            while True:
-                diff = self.move.gyro.angle-gyroB
-                if diff != 0:
-                    self.both("RED")
-                else:
-                    self.both("GREEN")
-                gyroB = self.move.gyro.angle
-
-                try:
-                    if self.button.right:
-
-                        if selected == number_of_runs:
-                            selected = 1
-                            printmenuM()
-                            self.time.sleep(sleeptime)
-                            continue
-                        
-                        selected += 1
-                        printmenuM()
-                        self.time.sleep(sleeptime)
-
-                    if self.button.left:
-                        
-                        if selected == 1 or selected == 0:
-                            selected = number_of_runs
-                            printmenuM()
-                            self.time.sleep(sleeptime)
-
-                            continue
-
-                        selected -= 1
-                        printmenuM()
-                        self.time.sleep(sleeptime)
-                        
-                    if self.button.enter:
-                        self.util.right.off()
-                        self.util.left.off()
-                        self.both("ORANGE")
-                        self.os.system("clear")
-                        print("ARMED")
-                        
-                        while self.button.enter:
-                            pass
-
-                        self.both("GREEN")
-                        return selected
-
-                    if previous_gyro != self.move.gyro.angle:
-                        printmenuM()
-                    previous_gyro = self.move.gyro.angle
-
-                except KeyboardInterrupt:
-                    return None
-        elif motorcontrol:
-            self.os.system("clear")
+        #motorcontrol
+        if motorcontrol:
+            os.system("clear")
             print("motorCTRL")
-            print("left")
-            self.time.sleep(0.5)
+            print("right")
+            time.sleep(0.5)
             while True:
                 if currently_handling == -1:
                     while self.button.left:
-                        self.util.left.on(-20)
+                        self.util.topping.on(-20)
                     while self.button.right:
-                        self.util.left.on(20)
+                        self.util.topping.on(20)
                 elif currently_handling == 1:  
                     while self.button.left:
-                        self.util.right.on(-20)
+                        self.util.lever.on(-100)
                     while self.button.right:
-                        self.util.right.on(20)
+                        self.util.lever.on(100)
                 
 
                 if self.button.enter:
@@ -754,16 +806,16 @@ class Menu:
                     return None
                 elif self.button.down:
                     currently_handling *= -1
-                    self.os.system("clear")
+                    os.system("clear")
                     print("motorCTRL")
                     if currently_handling == -1: 
                         print("left")
                     elif currently_handling == 1: 
                         print("right")
-                    self.time.sleep(0.2)
+                    time.sleep(0.2)
 
-                self.util.right.off(brake=False)
-                self.util.left.off(brake=False)
+                self.util.lever.off(brake=False)
+                self.util.topping.off(brake=False)
 
     def settarget(self, _target, _minLeft, _maxLeft, _minRight, _maxRight):
         global target, minLeft, maxLeft, minRight, maxRight
@@ -791,8 +843,10 @@ class Menu:
         elif selected == 5:
             self.runs.run5()
             print("ötödik futam done")
+            return "end"
+        return selected+1
             
-        return None
+        
 
         """
         exec("self.runs.run"+str(selected)+"()")
