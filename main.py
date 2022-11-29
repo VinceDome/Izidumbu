@@ -112,7 +112,9 @@ class Move:
                 remaining = (rot * -1) - (initial_rot - self.Avg(self.motorLeft.position, self.motorRight.position))
                 if remaining < rampdown[1]:     
                     ratio = remaining / rampdown[1]
-                    speed = (ratio * diffD) - rampdown[0]
+                    speed = (ratio * (diffD * -1)) - rampdown[0]
+                    if speed > -10:
+                        speed = -10
 
 
             elif rot > 0 and rampdown[1] != 0:
@@ -148,7 +150,11 @@ class Move:
         initial_deg = self.gyro.angle
 
         remaining = deg - self.gyro.angle
+        tic = time.perf_counter()
         while remaining != 0:
+            if time.perf_counter() > tic + timeout:
+                break
+
             remaining = deg - self.gyro.angle
 
             remaining = math.copysign(min(abs(remaining) ** 1, 100), remaining)
@@ -562,8 +568,30 @@ class Runs:
             pass
         self.util.lever.off()
 
-        self.move.g(-80, 700, initial_deg=0, rampup = [0, 0.5], rampdown=[0, 200])
+        self.move.g(-80, 1280, initial_deg=0, rampup = [0, 0.5], rampdown=[0, 300])
+        self.move.g(80, 150, initial_deg=0)
+
+        self.move.t(-45)
+        self.move.g(60, 300, initial_deg=-45)
+
+        self.move.t(900, timeout=0.5)
         
+        self.util.lever.on_for_degrees(100, 470, block = False)
+        self.move.t(-55, timeout = 2)
+
+        self.move.t(-45)
+
+        self.move.g(-40, 200, initial_deg=-45)
+        self.move.t(-90)
+        self.move.g(-60, 300, initial_deg=-90, timeout = 1.5)
+
+        self.move.gyro.reset()
+        self.move.time.sleep(0.5)
+
+        self.move.g(60, 100, initial_deg=0)
+
+        self.move.t(-90, motors="d")
+
 
     def run2(self):
         self.move.gyro.reset()
