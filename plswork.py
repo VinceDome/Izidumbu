@@ -44,7 +44,7 @@ def speed():
 menu.settarget(30, 0, 0, 0, 0)
 #-1734, -2682
 
-runs.run1()
+runs.run2()
 
 move.time.sleep(5)
 """
