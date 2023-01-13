@@ -74,8 +74,6 @@ class Move:
         #rampdown[0] = hova rampdownol
         ##rampdown[1] = hány fok alatt rampdownol a végén
 
-        if rampdown[0] > 0:
-            turnOffMotors = False
   
         _speed = speed
 
@@ -97,7 +95,7 @@ class Move:
 
             if not time.perf_counter() - tic > rampup[1]:
                 ratio = (time.perf_counter() - tic) / rampup[1]
-                speed = (ratio * diffU) - rampup[0]
+                speed = (ratio * diffU) + rampup[0]
                 if speed < -100:
                     speed = -100
                 elif speed > 100:
@@ -136,7 +134,7 @@ class Move:
                 self.steer.on(-100, speed)
                 continue
 
-            #print(self.gyro.angle, correction)
+            print(self.gyro.angle, correction, speed)
             self.steer.on(correction, speed)
 
         if turnOffMotors:
@@ -145,7 +143,7 @@ class Move:
 
         print(self.gyro.angle)
 
-    def t(self, deg, timeout=10000, motors="ad", givenBrake=True, turnOffMotors=True):
+    def t(self, deg, exponent = 1, timeout=10000, motors="ad", givenBrake=True, turnOffMotors=True):
         initial_deg = self.gyro.angle
 
         remaining = deg - self.gyro.angle
@@ -156,7 +154,7 @@ class Move:
 
             remaining = deg - self.gyro.angle
 
-            remaining = math.copysign(min(abs(remaining) ** 1, 100), remaining)
+            remaining = math.copysign(min(abs(remaining) ** exponent, 100), remaining)
 
 
             """
@@ -573,7 +571,7 @@ class Runs:
 
         #beáll az ellökő pozícióba
         self.move.t(-45)
-        self.move.g(60, 300, initial_deg=-45)
+        self.move.g(60, 300+50, initial_deg=-45)
 
         #ellöki a kéket
         self.move.t(900, timeout=0.3)
@@ -584,7 +582,7 @@ class Runs:
 
         #visszaáll, hátramegy, falaz
         self.move.t(-45)
-        self.move.g(-60, 200, initial_deg=-45)
+        self.move.g(-60, 250, initial_deg=-45)
         self.move.t(-90)
         self.move.g(-30, 300, initial_deg=-90, timeout = 1.5)
 
@@ -603,7 +601,7 @@ class Runs:
 
         self.util.lever.on_for_degrees(100, 600, block = False)
 
-        self.move.t(-110)
+        self.move.t(-110-30)
 
         self.move.t(-83)
 
@@ -618,10 +616,9 @@ class Runs:
 
         self.move.g(-40, 350, initial_deg=-120)
 
-        self.move.t(-85)
+        self.move.t(-95)
         self.util.lever.on_for_degrees(-100, 1000)
-        self.move.g(80, 2600, initial_deg=-85, givenBrake=False)
-
+        self.move.g(80, 2600, initial_deg=-95, givenBrake=False)
 
     def run2(self):
         self.move.gyro.reset()
@@ -685,8 +682,6 @@ class Runs:
         self.util.topping.on_for_degrees(100, 200)
 
         self.move.g(-80, 1500, initial_deg=-140, rampup=[0, 0.7])
-
-
 
     def run3(self):
         self.move.gyro.reset()
@@ -756,9 +751,70 @@ class Runs:
         self.util.lever.on_for_degrees(100, 500)
 
 
-
     def run5(self):
-        pass
+        #gyro reset
+        self.move.gyro.reset()
+        self.move.time.sleep(0.5)
+
+        #pull down the lever
+        self.util.lever.on(-100)
+        while not self.util.lever.is_stalled:
+            pass
+        self.util.lever.off()
+        self.util.topping.off(brake=False)
+
+        self.move.g(70, 1100, initial_deg=0, rampup=[30, 0.5], rampdown = [0, 250])
+
+        self.move.t(32, exponent=0.8)
+       
+        self.move.g(40, 500, initial_deg = 32, rampup = [30, 0.5], rampdown=[0, 300], timeout=2)
+
+        #lower the energy units
+        self.time.sleep(0.3)
+        
+        deg = self.util.topping.position
+
+        while self.util.topping.position < deg + 60:
+            print(deg, self.util.topping.position)
+            self.util.topping.on(10)
+            if self.util.topping.is_stalled:
+                print("STALLED")
+                self.util.topping.off()
+                self.time.sleep(0.1)
+
+        self.util.topping.off(brake=False)
+
+        self.time.sleep(0.5)
+
+        self.move.g(-40, 400, initial_deg=32, rampdown=[0, 50])
+
+        #turn to 'The Hand'
+        self.move.t(-25)
+
+        self.util.lever.on_for_degrees(100, 1000, block=False)
+        self.move.g(80, 1040, initial_deg=-25, rampup=[30, 0.5], rampdown=[10, 300])
+
+        #raise 'The Hand'
+        self.move.t(-5, exponent=0.9, timeout=2)
+
+        self.move.time.sleep(0.5)
+
+        self.move.g(-40, 100, initial_deg=0, rampdown=[0, 50])
+
+        self.move.t(-152)
+        self.move.g(-40, 300, initial_deg=-152)
+        self.move.gyro.reset()
+        self.move.time.sleep(0.5)
+
+        self.move.g(40, 100, initial_deg=0, turnOffMotors=False, rampup=[0, 0.5])
+        self.move.g(40, 700, initial_deg=160, multiplier=0.28, turnOffMotors=False)
+        self.util.lever.on_for_degrees(-100, 900, block=False)
+        self.move.t(150)
+
+        self.move.g(20, 250, initial_deg=150, rampdown=[0, 70])
+
+        self.util.lever.on_for_degrees(100, 900)
+
 
     
 
@@ -818,6 +874,23 @@ class Menu:
 
             print("Run "+str(printed_run))
             print("Gyro "+str(self.move.gyro.angle))
+    
+        def motorpulling():
+            if selected == 1:
+                self.util.lever.off(brake=False)
+                self.util.topping.off(brake=False)
+            elif selected == 2:
+                self.util.lever.off(brake=False)
+                self.util.topping.off(brake=False)
+            elif selected == 3:
+                self.util.lever.off(brake=False)
+                self.util.topping.off(brake=False)
+            elif selected == 4:
+                self.util.lever.off(brake=False)
+                self.util.topping.off(brake=False)
+            if selected == 5:
+                self.util.lever.off(brake=False)
+                self.util.topping.on(-3)
        
         while True:
             #making the leds red when the gyro is moving
@@ -834,36 +907,35 @@ class Menu:
                 if selected == number_of_runs:
                     selected = 1
                     printmenu()
+                    motorpulling()
                     self.time.sleep(sleeptime)
                     continue
 
                 selected += 1
                 printmenu()
+                motorpulling()
                 self.time.sleep(sleeptime)
 
             if self.button.left:
                 if selected == 1:
                     selected = number_of_runs
                     printmenu()
+                    motorpulling()
                     self.time.sleep(sleeptime)
                     continue
 
                 selected -= 1
                 printmenu()
+                motorpulling()
                 self.time.sleep(sleeptime)
             
             #motor pulling
-            if selected == 1:
-                #nemtommilyenmotor
-                pass
-            elif selected == 2:
-                #difförönt kájnd of motor
-                pass
+            
 
             #launching runs
             if self.button.enter and not self.button.down:
-                self.util.lever.off()
-                self.util.topping.off()
+                self.util.lever.off(brake=False)
+                self.util.topping.off(brake=False)
                 self.both("ORANGE")
                 os.system("clear")
                 print("ARMED")
@@ -876,6 +948,7 @@ class Menu:
                 if selected == 0:
                     print("FAILED")
                     printmenu()
+                    motorpulling()
                     continue
 
                 return selected
@@ -883,8 +956,8 @@ class Menu:
             #motorwiggle and motorcontrol launching
             elif self.button.down:
                 if self.button.enter:
-                    self.util.topping.off()
-                    self.util.lever.off()
+                    self.util.topping.off(brake=False)
+                    self.util.lever.off(brake=False)
                     motorcontrol = True
                     break
                 else:
@@ -892,14 +965,12 @@ class Menu:
                     self.time.sleep(0.1)
                     self.util.topping.on(-30)
                     self.time.sleep(0.1)
-            else:
-                self.util.topping.off()
-                self.util.lever.off()
                    
             
             
             if selected != previous_selected or previous_gyro != self.move.gyro.angle:
                 printmenu()
+                motorpulling()
             previous_selected = selected
             previous_gyro = self.move.gyro.angle
 
@@ -964,7 +1035,7 @@ class Menu:
         elif selected == 5:
             self.runs.run5()
             print("ötödik futam done")
-            return "end"
+            return 5
         return selected+1
             
         
