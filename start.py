@@ -30,7 +30,7 @@ stop = False
 default = 1
 menu.console.set_font("Lat15-Terminus32x16.psf.gz", True)
 #Lat15-Terminus22x11.psf.gz
-
+menu.both("RED")
 
 selected = 1
 if testing_mode:
@@ -59,10 +59,11 @@ while True:
         move.drive.off(brake=False)
         util.lever.off(brake=False)
         util.topping.off(brake=False)
-        default = selected
+        if not selected >= 5:
+            default = selected + 1
+        else:
+            default=5
         print("interrupted")
         #time.sleep(2)
     if stop:
-        break
-
-    
+        break    

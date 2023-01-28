@@ -46,18 +46,7 @@ menu.settarget(30, 0, 0, 0, 0)
 
 
 
-runs.run5()
-
-deg = util.topping.position
-while util.topping.position < deg + 30:
-    print(deg, util.topping.position)
-    util.topping.on(10)
-    if util.topping.is_stalled:
-        print("STALLED")
-        util.topping.off()
-        time.sleep(0.1)
-
-util.topping.off(brake=False)
+runs.run1()
 
 move.time.sleep(5)
 """
