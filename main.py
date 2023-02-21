@@ -100,6 +100,7 @@ class Move:
                     speed = -100
                 elif speed > 100:
                     speed = 100
+                
             else:
                 speed = _speed
 
@@ -143,14 +144,18 @@ class Move:
 
         print(self.gyro.angle)
 
-    def t(self, deg, exponent = 1, timeout=10000, motors="ad", givenBrake=True, motorsEnd=False):
+    def t(self, deg, exponent = 1, timeout=10000, motors="ad", givenBrake=True, motorsEnd=False, tolerance=0):
         initial_deg = self.gyro.angle
 
         remaining = deg - self.gyro.angle
         tic = time.perf_counter()
-        while remaining != 0:
+
+        running=True
+        while running:
             if time.perf_counter() > tic + timeout:
-                break
+                running=False
+            elif abs(remaining) <= 0 + tolerance:
+                running=False
 
             remaining = deg - self.gyro.angle
 
@@ -563,8 +568,8 @@ class Runs:
         self.util.lever.on(-40)
 
         #kitolja
-        self.move.g(-80, 1280, initial_deg=0, rampup = [0, 0.5], rampdown=[0, 300], multiplier=1.8)
-        self.move.g(40, 150+100, initial_deg=0, rampdown=[0, 50])
+        self.move.g(-80, 1280, initial_deg=1, rampup = [0, 0.5], rampdown=[0, 300], multiplier=1.8)
+        self.move.g(40, 150+100, initial_deg=1, rampdown=[0, 50])
 
         #beáll az ellökő pozícióba
         self.move.t(-50)
@@ -581,10 +586,10 @@ class Runs:
         self.move.t(-60, timeout = 0.9)
 
         #visszaáll, hátramegy, falaz
-        self.move.t(-50)
+        self.move.t(-50, exponent=1.1)
         self.move.g(-30, 250, initial_deg=-45, rampup=[0, 0.5], rampdown=[0, 50])
         self.move.t(-90)
-        self.move.g(-30, 300, initial_deg=-90, timeout = 1.5)
+        self.move.g(-30, 300, initial_deg=-90, timeout = 1.5, rampup=[0, 0.5])
 
         #reset
         self.move.gyro.reset()
@@ -597,7 +602,7 @@ class Runs:
 
         self.util.lever.on_for_degrees(-100, 100, block = False)
 
-        self.move.g(30, 250+50, initial_deg=-90, rampup=[0, 0.5], rampdown=[0, 100])
+        self.move.g(30, 300-20, initial_deg=-90, rampup=[0, 0.5], rampdown=[0, 100])
 
         self.util.lever.on_for_degrees(100, 250)
 
@@ -656,7 +661,7 @@ class Runs:
 
         self.util.lever.on(-40)
 
-        self.util.topping.on(-1)
+        self.util.topping.on(-7)
 
         self.move.g(-40, 600, initial_deg=0, rampup=[0, 0.8], rampdown = [-20, 100], motorsEnd=True)
 
@@ -666,10 +671,13 @@ class Runs:
         self.move.t(-135)
 
         self.util.lever.off()
+        self.util.topping.off(brake=False)
 
         self.move.g(80, 920, initial_deg=-135, rampup = [0, 0.6], rampdown=[0, 400])
 
         self.move.t(-225)
+        
+        self.util.topping.on_for_degrees(40, 30+10, block=False)
 
         self.move.g(25, 550, initial_deg=-225, multiplier=2, rampdown=[0, 30])
         self.time.sleep(0.8)
@@ -681,7 +689,7 @@ class Runs:
             self.move.time.sleep(0.5)
 
         self.move.g(-30, 100, initial_deg=-225, motorsEnd=True)
-        self.move.g(-60, 550, initial_deg=-260, rampdown=[0, 150])
+        self.move.g(-60, 550-30, initial_deg=-260, rampdown=[0, 150])
 
         self.move.t(-135-20)
         
@@ -691,10 +699,10 @@ class Runs:
         """
         #kitolja
         self.move.g(-60, 400, initial_deg=-135-20, rampup=[0, 0.5], rampdown=[10, 100])
-        self.move.t(-133, motors="a", exponent=1.3)
-        self.util.topping.on_for_degrees(20, 200)
-        self.time.sleep(0.6)
-        self.move.g(-100, 1000, initial_deg=-135-10, rampup=[0, 0.7])
+        self.move.t(-135, motors="a", exponent=1.3)
+        self.util.topping.on_for_degrees(40, 250)
+        self.time.sleep(0.3)
+        self.move.g(-80, 1000, initial_deg=-135, rampup=[0, 1])
 
         return
         self.move.t(-55)
@@ -721,7 +729,24 @@ class Runs:
     def run3(self):
         self.move.gyro.reset()
         self.move.time.sleep(0.5)
+        
+        self.util.lever.on(-50)
 
+        self.move.g(70, 100, rampup=[0, 0.6], initial_deg=0, motorsEnd=True)
+
+        self.move.g(70, 1100, rampdown=[0, 200], initial_deg=-50, multiplier=0.4)
+
+        self.util.lever.off()
+
+        self.util.lever.on_for_degrees(100, 900)
+
+        self.time.sleep(0.3)
+
+        self.util.lever.on_for_degrees(-100, 400, block=False)
+
+        self.move.g(100, 2600, initial_deg=20, rampup=[0, 0.5], multiplier=0.8, givenBrake=False)
+        
+        """
         self.util.lever.on(-50)
 
         self.move.g(70, 200, rampup=[0, 0.8], initial_deg=0, motorsEnd=True)
@@ -742,7 +767,8 @@ class Runs:
 
         self.move.g(-100, 2000, rampup=[0, 0.8], initial_deg=-180, multiplier=0.7, givenBrake=False)
         #self.move.g(90, 3500, rampup=[0, 1.5], givenBrake=False)
-
+        """
+    
     def run4(self):
 
         #gyro reset
@@ -756,9 +782,29 @@ class Runs:
 
         #előremegy
         self.move.g(70, 100, initial_deg=0, rampup=[30, 0.5], motorsEnd=True)
-        self.move.g(70, 1650, initial_deg=8, rampdown = [0, 300])
+        self.move.g(70, 1650, initial_deg=8, rampdown = [0, 300], givenBrake=False)
 
         self.util.lever.off()
+
+        self.move.t(-20, motors="a", motorsEnd=True, timeout=3, tolerance=2)
+        self.move.g(40, 200, initial_deg=-20, motorsEnd=True)
+        self.move.t(-60, motors="a", givenBrake=False, motorsEnd=True, exponent=1.2, tolerance=2)
+
+        self.move.g(40, 150, initial_deg=-60, rampup=[0, 0.5], rampdown=[0, 50])
+        self.move.t(-120, motors="a", exponent=1.2, tolerance=2)
+
+        """
+        self.move.t(-20, motors="a", motorsEnd=True, timeout=3, exponent=1.3)
+
+
+        self.move.g(25, 180, initial_deg=-20, rampup=[0, 0.7], givenBrake=False)
+        self.move.t(-60, exponent=1.3, motors="a")
+        self.move.g(40, 140, initial_deg=-60, rampup=[20, 0.5], rampdown=[0, 150])
+        self.move.t(-120, motors="a", exponent=1.4)
+
+        """
+        """
+        #régirégi
         #rááll a falra
         self.move.t(-20, motors="a", motorsEnd=True, timeout=3)
         self.move.g(40, 200, initial_deg=-20, motorsEnd=True)
@@ -767,6 +813,8 @@ class Runs:
         #előremegy és elfordul a faltól
         self.move.g(40, 150, initial_deg=-60, rampdown=[0, 50])
         self.move.t(-120, motors="a", exponent=1)
+        #végearéginek
+        """
 
         #előremegy, aztán hirtelen vissza, és ráfordul az egyenesre
         self.move.g(60, 400, initial_deg=-120, motorsEnd=True, rampup=[0, 0.6])
@@ -774,12 +822,14 @@ class Runs:
         self.util.lever.on_for_degrees(100, 350, block=False)
 
         self.move.g(-60, 200, initial_deg=-120-5, motorsEnd=True)
-        self.move.g(-60, 650, initial_deg=-28, multiplier=0.4, rampdown=[0, 200])
+        self.move.g(-60, 650+100-15, initial_deg=-28, multiplier=0.4, rampdown=[0, 200])
         self.move.t(-239)
         self.util.lever.on_for_degrees(-100, 350, block=False)
 
         #elmegy a missionhöz
-        self.move.g(80, 580+10, initial_deg=-239, rampup=[0, 0.7], rampdown = [0, 300], multiplier=1.8)
+        self.move.g(80, 470+100, initial_deg=-239, rampup=[0, 0.7], rampdown = [0, 300], multiplier=2)
+
+        self.move.g(-10, 35, initial_deg=-239, multiplier=2.3)
 
         #háromszor kart emel
         for i in range(3):
@@ -803,9 +853,9 @@ class Runs:
             self.util.lever.off()
 
 
-        self.move.t(-255, motors="d")
+        self.move.t(-255, motors="d", exponent=1.2, tolerance=2)
         self.util.lever.on_for_degrees(100, 250, block=False)
-        self.move.t(-315, motors="a", timeout=2.5)
+        self.move.t(-315, motors="a", exponent=1.2, timeout=2.5, tolerance=1)
         #párhuzamosan ráparkol
         """
         self.move.t(-275, motors="d")
@@ -813,13 +863,14 @@ class Runs:
         self.move.t(-296, motors="a")
         self.move.g(15, 70+20, initial_deg=-296, multiplier=2)
         """
-        
-        self.util.lever.on_for_degrees(-100, 50+50+10)
 
-        self.move.g(-20, 300, motorsEnd=True)
-        self.move.g(-40, 400, initial_deg=-375, givenBrake=False)
+        self.move.g(10, 20, initial_deg=-315)
 
-        self.move.g(-80, 900, initial_deg=-375, rampup=[-40, -80])
+        self.util.lever.on_for_degrees(-100, 110)
+
+        self.move.g(-20, 200+20, motorsEnd=True, rampup=[0, 0.5], initial_deg=-315)
+
+        self.move.g(-80, 1300, initial_deg=-375, rampup=[-20, 1], multiplier=0.8)
 
         self.util.lever.on_for_degrees(100, 500)
 
@@ -880,20 +931,44 @@ class Runs:
         
         """
 
-
     def run5(self):
+        self.move.gyro.reset()
+        self.move.time.sleep(0.5)
+
+        self.util.lever.on(-100)
+
+        self.move.g(60, 200, initial_deg=0, rampup=[0, 1], motorsEnd=True)
+        self.util.lever.on_for_degrees(100, 300, block=False)
+        self.move.g(60, 570, initial_deg=10, rampdown=[0, 140])
+        
+        self.util.lever.on_for_degrees(-100, 180)
+
+        self.move.g(-70, 500, initial_deg=10, rampup=[0, 0.6], motorsEnd=True)
+
+        self.util.lever.on(100)
+
+        self.move.g(-70, 150, initial_deg=10, givenBrake=False)
+
+
+    def run6(self):
         #gyro reset
         self.move.gyro.reset()
         self.move.time.sleep(0.5)
         
         self.util.topping.off(brake=False)
 
+        self.move.g(90, 870, initial_deg=0, rampup=[0, 0.8], motorsEnd=True)
+
+        self.move.g(90, 670, initial_deg = 33, rampdown=[0, 300], timeout=3, multiplier=0.8)
+        """
         self.move.g(70, 1100, initial_deg=0, rampup=[30, 0.5], rampdown = [0, 250])
 
-        self.move.t(32, exponent=0.8)
+        self.move.t(32, exponent=0.9)
        
-        self.move.g(40, 500, initial_deg = 32, rampup = [30, 0.5], rampdown=[0, 300], timeout=2)
+        self.move.g(55, 500-20, initial_deg = 32, rampup = [0, 0.5], rampdown=[0, 300], timeout=2)
+        """
 
+        
         #lower the energy units
         self.time.sleep(0.3)
         
@@ -911,28 +986,39 @@ class Runs:
 
         self.time.sleep(0.5)
 
-        self.move.g(-40, 400, initial_deg=32, rampdown=[0, 50])
+        self.move.g(-55, 400-30, initial_deg=32, rampup=[0, 0.5], rampdown=[0, 50])
 
         #turn to 'The Hand'
         self.move.t(-23)
 
-        self.move.g(80, 1020, initial_deg=-23, rampup=[30, 0.5], rampdown=[10, 300])
+        self.move.g(80, 870, initial_deg=-23, rampup=[0, 0.6], rampdown=[60, 170], motorsEnd=True)
+        self.move.g(60, 200, initial_deg=-5, rampdown=[0, 80])
+        """
+        self.move.g(80, 1020, initial_deg=-23, rampup=[0, 0.6], rampdown=[10, 300])
 
         #raise 'The Hand'
-        self.move.t(-2, exponent=0.9, timeout=2)
+        self.move.t(-2, exponent=0.9+0.2, timeout=2, tolerance=2)
 
         self.move.time.sleep(0.5)
+        """
 
-        self.move.g(-40, 100, initial_deg=0, rampdown=[0, 50])
+        self.move.g(-40, 150, initial_deg=0, rampup=[0, 0.5], rampdown=[0, 50])
 
         #falaz
-        self.move.t(-152, exponent=0.8)
-        self.move.g(-50, 300, initial_deg=-152)
+        self.move.t(-152, exponent=0.8, tolerance=1)
+        self.move.g(-50, 250, initial_deg=-152, rampup=[0, 0.5], timeout=2)
         self.move.gyro.reset()
         self.move.time.sleep(0.5)
 
         self.util.lever.on_for_degrees(-100, 500, block=False)
 
+        self.move.g(30, 200, rampup=[0, 0.4], initial_deg=15, rampdown=[0, 70])
+
+        self.move.t(-7, exponent=1.2, motors="a")
+        self.move.t(-7, exponent=1, motors="a")
+        self.move.g(20, 100, initial_deg=-7, rampup=[0, 0.5], multiplier=2.5)
+        self.util.lever.on_for_degrees(70, 700, block=False)
+        """
         self.move.g(30, 85, rampup=[0, 0.4], initial_deg=0)
         self.move.t(20, exponent=1.1, motors="d")
         self.move.g(30, 50, initial_deg=20, rampup=[0, 0.5], rampdown=[0, 30], multiplier=2)
@@ -940,6 +1026,7 @@ class Runs:
         self.move.g(20, 100, initial_deg=-4-1, rampup=[0, 0.5], rampdown=[0, 30], multiplier=2)
         self.util.lever.on_for_degrees(50, 700)
 
+        """
         """
         self.move.g(30, 85)
         self.move.t(20, exponent=0.8, motors="d")
@@ -950,13 +1037,13 @@ class Runs:
         """
 
 
-        self.move.g(30, 200, initial_deg=-25)
+        self.move.g(30, 250, initial_deg=-25, rampup=[0, 0.5])
 
         self.util.lever.on_for_degrees(-50, 480)
         self.time.sleep(0.5)
 
-        self.move.g(-40, 100, motorsEnd=True)
-        self.move.g(-40, 550, initial_deg=30+10, multiplier = 0.3)
+        self.move.g(-40, 100-30, motorsEnd=True)
+        self.move.g(-40, 550, initial_deg=-1, multiplier = 0.3+0.9, timeout=3)
 
         self.move.gyro.reset()
         self.move.time.sleep(0.5)
@@ -969,7 +1056,9 @@ class Runs:
 
 
         self.move.t(148-2)
-        self.move.g(40, 50, initial_deg=148-2, rampup=[10, 0.5])
+        self.move.t(148-2)
+
+        self.move.g(40, 50+30, initial_deg=148-2, rampup=[10, 0.5])
 
 
         deg = self.util.lever.position
@@ -983,7 +1072,12 @@ class Runs:
                 self.time.sleep(0.1)
 
 
+
         self.util.lever.off()
+
+        self.move.g(-60, 700, initial_deg=146+180, multiplier=0.35, motorsEnd=True)
+        self.move.g(-60, 150, initial_deg=340, multiplier=0.7, givenBrake=False)
+        
 
 
 
@@ -1022,7 +1116,7 @@ class Menu:
         self.both("GREEN")
         sleeptime = 0.3
         os.system("clear")
-        number_of_runs = 5
+        number_of_runs = 6
         self.move.drive.off(brake=False)
         self.util.lever.off(brake=False)
         self.util.topping.off(brake=False)
@@ -1059,7 +1153,10 @@ class Menu:
             elif selected == 4:
                 self.util.lever.off(brake=False)
                 self.util.topping.off(brake=False)
-            if selected == 5:
+            elif selected == 5:
+                self.util.lever.off(brake=False)
+                self.util.topping.off(brake=False)
+            elif selected == 6:
                 self.util.lever.on(20)
                 self.util.topping.on(-3)
        
@@ -1123,7 +1220,7 @@ class Menu:
                     motorpulling()
                     continue
                 elif selected == 3:
-                    self.time.sleep(1.5)
+                    self.time.sleep(1)
                 return selected
 
             #motorwiggle and motorcontrol launching
@@ -1209,7 +1306,10 @@ class Menu:
         elif selected == 5:
             self.runs.run5()
             print("ötödik futam done")
-            return 5
+        elif selected == 6:
+            self.runs.run6()
+            print("hadotik futam done")
+            return 6
         return selected+1
             
         

@@ -6,6 +6,7 @@ util = Util()
 import time, os
 testing_mode = True
 
+
 def CalibrateColor():
     global dataL, dataR
     dataL = []
@@ -24,7 +25,7 @@ def CalibrateColor():
     time.sleep(3)
     return final
 
-    
+
 
 stop = False
 default = 1
@@ -59,10 +60,10 @@ while True:
         move.drive.off(brake=False)
         util.lever.off(brake=False)
         util.topping.off(brake=False)
-        if not selected >= 5:
+        if not selected >= 6:
             default = selected + 1
         else:
-            default=5
+            default=6
         print("interrupted")
         #time.sleep(2)
     if stop:
