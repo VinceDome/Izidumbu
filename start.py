@@ -60,10 +60,6 @@ while True:
         move.drive.off(brake=False)
         util.lever.off(brake=False)
         util.topping.off(brake=False)
-        if not selected >= 6:
-            default = selected + 1
-        else:
-            default=6
         print("interrupted")
         #time.sleep(2)
     if stop:
